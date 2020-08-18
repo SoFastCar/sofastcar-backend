@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "project-sofastcar"
+version = "0.1.0"
+description = ""
+authors = ["moorekwon <raccoonhj33@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+django = "^3.1"
+djangorestframework = "^3.11.1"
+gunicorn = "^20.0.4"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
