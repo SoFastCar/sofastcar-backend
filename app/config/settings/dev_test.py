@@ -1,9 +1,11 @@
 from .base import *
 
-DEBUG = True
+ENV = 'dev_test'
 
-ALLOWED_HOSTS += []
+TEST = True
 
-INSTALLED_APPS += []
+DEFAULT_FILE_STORAGE = 'inmemorystorage.InMemoryStorage'
 
-WSGI_APPLICATION = 'config.wsgi.dev.application'
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.MD5PasswordHasher',
+]

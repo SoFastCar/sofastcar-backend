@@ -83,6 +83,7 @@ testing = ["pytest", "pytest-cov"]
 
 [metadata]
 content-hash = "29ab68f33c5c9ea9b04fe40b764a0a7ceb00c2a740685720bad029e48944e54d"
+lock-version = "1.0"
 python-versions = "^3.7"
 
 [metadata.files]
