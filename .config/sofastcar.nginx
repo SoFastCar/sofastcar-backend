@@ -1,14 +1,28 @@
 server {
-    listen              80;
-    server_name         sofastcar.moorekwon.xyz;
-    charset             utf-8;
+    listen                  80;
+    server_name             sofastcar.moorekwon.xyz;
+    charset                 utf-8;
 
     location / {
-        include         /etc/nginx/proxy_params;
-        proxy_pass      http://unix:/run/sofastcar.sock;
+        return              301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen                  443 ssl;
+    server_name             sofastcar.moorekwon.xyz;
+    charset                 utf-8;
+
+    ssl                     on;
+    ssl_certificate         /etc/letsencrypt/live/moorekwon.xyz/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/moorekwon.xyz/privkey.pem;
+
+    location / {
+        include             /etc/nginx/proxy_params;
+        proxy_pass          http://unix:/run/sofastcar.sock;
     }
 
     location /static/ {
-        alias           /srv/sofastcar/.static/;
+        alias               /srv/sofastcar/.static/;
     }
 }
