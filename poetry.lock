@@ -70,8 +70,19 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.3.1"
 
+[[package]]
+category = "main"
+description = "A system for controlling process state under UNIX"
+name = "supervisor"
+optional = false
+python-versions = "*"
+version = "4.2.0"
+
+[package.extras]
+testing = ["pytest", "pytest-cov"]
+
 [metadata]
-content-hash = "8abdbaa2c070ff30ad9a730d70ff3f6da4cc9fea9b341cbcb8d4e3d49e34e121"
+content-hash = "29ab68f33c5c9ea9b04fe40b764a0a7ceb00c2a740685720bad029e48944e54d"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -98,4 +109,8 @@ pytz = [
 sqlparse = [
     {file = "sqlparse-0.3.1-py2.py3-none-any.whl", hash = "sha256:022fb9c87b524d1f7862b3037e541f68597a730a8843245c349fc93e1643dc4e"},
     {file = "sqlparse-0.3.1.tar.gz", hash = "sha256:e162203737712307dfe78860cc56c8da8a852ab2ee33750e33aeadf38d12c548"},
+]
+supervisor = [
+    {file = "supervisor-4.2.0-py2.py3-none-any.whl", hash = "sha256:7720750ebb83ac16204ff7037c3d828ba2e0502fa0b29e6de40bc6482b08a55c"},
+    {file = "supervisor-4.2.0.tar.gz", hash = "sha256:64082ebedf6d36ff409ab2878f1aad5c9035f916c5f15a9a1ec7dffc6dfbbed8"},
 ]

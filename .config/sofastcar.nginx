@@ -1,0 +1,14 @@
+server {
+    listen              80;
+    server_name         sofastcar.moorekwon.xyz;
+    charset             utf-8;
+
+    location / {
+        include         /etc/nginx/proxy_params;
+        proxy_pass      http://unix:/run/sofastcar.sock;
+    }
+
+    location /static/ {
+        alias           /srv/sofastcar/.static/;
+    }
+}

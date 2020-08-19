@@ -1,5 +1,7 @@
 .idea/*
 migrations/
+.static/*
+
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/pycharm,django,python
