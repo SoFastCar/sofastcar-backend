@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
+import datetime
 import os
 from pathlib import Path
 
@@ -43,10 +44,8 @@ INSTALLED_APPS = [
 
     'rest_framework',
 
-    # 'members.apps.MembersConfig',
-    # 'core.apps.CoreConfig',
-    'core',
-    'members',
+    'members.apps.MembersConfig',
+    'core.apps.CoreConfig',
 ]
 
 MIDDLEWARE = [
@@ -121,3 +120,14 @@ USE_L10N = True
 USE_TZ = True
 
 AUTH_USER_MODEL = 'members.Member'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+    ]
+}
+
+JWT_AUTH = {
+    'JWT_ALLOW_REFRESH': True,  # JWT 갱신 여부
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=30)  # JWT TTL 기간
+}

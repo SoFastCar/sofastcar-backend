@@ -5,14 +5,14 @@ from django.contrib.auth.models import (
 
 
 class MemberManager(BaseUserManager):
-    def create_user(self, email, password):
+    def create_user(self, email, password, confirm_password):
         """
         Creates and saves a User with the given email, date of
         birth and password.
         """
         if not email:
             raise ValueError('Users must have an email address')
-
+        print(confirm_password)
         user = self.model(
             email=self.normalize_email(email),
         )
@@ -70,3 +70,7 @@ class Member(AbstractBaseUser):
         """
         # Simplest possible answer: All admins are staff
         return self.is_admin
+
+    def save(self, *args, **kwargs):
+        self.set_password(self.password)
+        super().save(*args, **kwargs)

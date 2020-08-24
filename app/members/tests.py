@@ -15,7 +15,7 @@ class MemberTestCase(APITestCase):
         data = {
             'email': 'test@test.com',
             'password': 'test',
-            'confirm_password': 'test',
+            'confirm_password': 'test'
         }
         response = self.client.post('/members/', data=data)
 
@@ -27,3 +27,14 @@ class MemberTestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Member.objects.filter(id=self.member.id))
+
+    def test_change_password(self):
+        data = {
+            'password': 'member',
+            'change_password': 'test',
+            'confirm_password': 'test'
+        }
+        self.client.force_authenticate(user=self.member)
+        response = self.client.put(f'/members/{self.member.id}/change_password/', data=data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
