@@ -10,6 +10,7 @@ HOST = '13.209.3.76'
 TARGET = f'{USER}@{HOST}'
 DOCKER_IMAGE_TAG = 'raccoonhj33/sofastcar'
 PROJECT_NAME = 'sofastcar'
+ENV_FILE = os.path.join(os.path.join(str(Path.home()), 'projects', 'project-sofastcar'), '.env')
 
 DOCKER_OPTIONS = (
     ('--rm', ''),
@@ -17,7 +18,6 @@ DOCKER_OPTIONS = (
     ('-d', ''),
     ('-p', '80:80'),
     ('-p', '443:443'),
-    ('-e', 'DJANGO_SETTINGS_MODULE=config.settings.staging'),
     ('-v', '"/etc/letsencrypt:/etc/letsencrypt"'),
     ('--name', f'{PROJECT_NAME}'),
 )
@@ -58,6 +58,12 @@ def server_pull_run():
     ))
 
 
+# env 비밀값들 ec2에 복사 -> (docker run 후) docker에 복사
+def copy_secrets():
+    run(f'scp -i {IDENTITY_FILE} {ENV_FILE} {TARGET}:/tmp')
+    ssh_run(f'sudo docker cp /tmp/.env {PROJECT_NAME}:/srv/{PROJECT_NAME}')
+
+
 def server_exec():
     ssh_run(f'sudo docker exec {PROJECT_NAME} python manage.py collectstatic --noinput')
     ssh_run(f'sudo docker exec -d {PROJECT_NAME} supervisord -c /srv/{PROJECT_NAME}/.config/supervisord.conf')
@@ -72,6 +78,8 @@ if __name__ == '__main__':
         print('---> SERVER INITIAL SETTINGS COMPLETED.')
         server_pull_run()
         print('---> SERVER PULL AND RUN COMPLETED.')
+        copy_secrets()
+        print('---> SECRETS COPY COMPLETED.')
         server_exec()
         print('---> SERVER EXECUTE COMPLETED.')
         print('--- DEPLOY SUCCESS! ---')
