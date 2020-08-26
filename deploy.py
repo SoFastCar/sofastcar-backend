@@ -8,9 +8,9 @@ IDENTITY_FILE = os.path.join(str(Path.home()), '.ssh', 'sofastcar.pem')
 USER = 'ubuntu'
 HOST = '13.209.3.76'
 TARGET = f'{USER}@{HOST}'
-DOCKER_IMAGE_TAG = 'raccoonhj33/sofastcar'
+DOCKER_IMAGE_TAG = 'hsw0905/sofastcar'
 PROJECT_NAME = 'sofastcar'
-ENV_FILE = os.path.join(os.path.join(str(Path.home()), 'projects', 'project-sofastcar'), '.env')
+ENV_FILE = os.path.join(os.path.join(str(Path.home()), 'Documents/dev', 'sofastcar-backend'), '.env')
 
 DOCKER_OPTIONS = (
     ('--rm', ''),

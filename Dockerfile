@@ -15,5 +15,6 @@ WORKDIR     /srv/sofastcar/app
 RUN         rm /etc/nginx/sites-enabled/default
 RUN         cp /srv/sofastcar/.config/sofastcar.nginx /etc/nginx/sites-enabled/
 RUN         mkdir /var/log/gunicorn
+RUN         mkdir /srv/sofastcar/app/static
 
 CMD         /bin/bash
