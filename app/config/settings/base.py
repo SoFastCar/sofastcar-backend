@@ -54,7 +54,7 @@ INSTALLED_APPS = [
 
     'members.apps.MembersConfig',
     'core.apps.CoreConfig',
-    'carzones',
+    'carzones.apps.CarzonesConfig',
 ]
 
 MIDDLEWARE = [
