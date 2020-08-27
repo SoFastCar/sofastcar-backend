@@ -21,7 +21,7 @@ ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent.parent
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, '.static')]
 STATIC_ROOT = os.path.join(ROOT_DIR, '.static')
 
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     'members.apps.MembersConfig',
     'core.apps.CoreConfig',
     'carzones.apps.CarzonesConfig',
+
+    'import_export',
 ]
 
 MIDDLEWARE = [
@@ -128,3 +130,4 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+

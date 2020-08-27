@@ -13,9 +13,10 @@ class CarZoneSerializer(ModelSerializer):
                   'region',
                   'latitude',
                   'longitude',
+                  'sub_info',
                   'detail_info',
-                  'blog_page',
-                  'type']
+                  'type',
+                  'operating_time']
         read_only_fields = ['id',
                             'zone_id',
                             'name',
@@ -23,7 +24,8 @@ class CarZoneSerializer(ModelSerializer):
                             'region',
                             'latitude',
                             'longitude',
+                            'sub_info',
                             'detail_info',
-                            'blog_page',
-                            'type']
+                            'type',
+                            'operating_time']
 
