@@ -5,7 +5,7 @@ from .models import CarZone
 
 class CarZoneSerializer(ModelSerializer):
     class Meta:
-        model = 'carzones.CarZone'
+        model = CarZone
         fields = ['id',
                   'zone_id',
                   'name',
