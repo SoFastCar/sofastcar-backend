@@ -91,12 +91,12 @@ TEMPLATES = [
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': config('DB_NAME'),
-        'HOST': config('DB_HOST'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'PORT': config('DB_PORT'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+        # 'HOST': config('DB_HOST'),
+        # 'USER': config('DB_USER'),
+        # 'PASSWORD': config('DB_PASSWORD'),
+        # 'PORT': config('DB_PORT'),
     }
 }
 
@@ -142,6 +142,7 @@ REST_FRAMEWORK = {
 }
 
 JWT_AUTH = {
-    'JWT_ALLOW_REFRESH': True,  # JWT 갱신 여부
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=30)  # JWT TTL 기간
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_ALLOW_REFRESH': True,
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=30),
 }
