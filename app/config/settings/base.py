@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     'members.apps.MembersConfig',
     'core.apps.CoreConfig',
     'carzones.apps.CarzonesConfig',
+    'cars',
+    'prices',
 
     'import_export',
     'storages',
