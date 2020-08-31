@@ -15,7 +15,6 @@ python-decouple = "^3.3"
 xmltodict = "^0.12.0"
 requests = "^2.24.0"
 django-import-export = "^2.3.0"
-djangorestframework-jwt = "^1.11.0"
 
 [tool.poetry.dev-dependencies]
 
