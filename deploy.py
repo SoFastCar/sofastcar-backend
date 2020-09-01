@@ -10,7 +10,7 @@ HOST = '13.209.3.76'
 TARGET = f'{USER}@{HOST}'
 DOCKER_IMAGE_TAG = 'hsw0905/sofastcar'
 PROJECT_NAME = 'sofastcar'
-ENV_FILE = os.path.join(os.path.join(str(Path.home()), 'Documents/dev', 'sofastcar-backend'), '.env')
+ENV_FILE = os.path.join(os.path.join(str(Path.home()), 'repo', 'sofastcar-backend'), '.env')
 
 DOCKER_OPTIONS = (
     ('--rm', ''),
