@@ -5,33 +5,24 @@ from django.contrib.auth.models import (
 
 
 class MemberManager(BaseUserManager):
-    def create_user(self, email, password):
-        """
-        Creates and saves a User with the given email, date of
-        birth and password.
-        """
-        if not email:
-            raise ValueError('Users must have an email address')
-        user = self.model(
-            email=self.normalize_email(email),
-        )
-
-        user.set_password(password)
+    def _create_user(self, email, password, registration_id):
+        email = self.normalize_email(email)
+        user = self.model(email=email, password=password, registration_id=registration_id)
         user.save()
         return user
 
-    def create_superuser(self, email, password):
-        """
-        Creates and saves a superuser with the given email, date of
-        birth and password.
-        """
-        user = self.create_user(
-            email,
-            password=password,
-        )
+    def _create_superuser(self, email, password, registration_id):
+        email = self.normalize_email(email)
+        user = self.model(email=email, password=password, registration_id=registration_id)
         user.is_admin = True
         user.save()
         return user
+
+    def create_user(self, email, password, registration_id):
+        return self._create_user(email, password, registration_id)
+
+    def create_superuser(self, email, password, registration_id):
+        return self._create_superuser(email, password, registration_id)
 
 
 class Member(AbstractBaseUser):
@@ -50,7 +41,7 @@ class Member(AbstractBaseUser):
     objects = MemberManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['registration_id']
 
     def has_perm(self, perm, obj=None):
         """
@@ -85,7 +76,8 @@ class Member(AbstractBaseUser):
                 member=self,
                 birth=f'{registration_id[0:2]}-{registration_id[2:4]}-{registration_id[4:6]}'
             )
-        super().save(*args, **kwargs)
+        else:
+            super().save(*args, **kwargs)
 
 
 class Profile(models.Model):
