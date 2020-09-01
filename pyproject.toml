@@ -19,6 +19,7 @@ django-storages = "^1.9.1"
 boto3 = "^1.14.50"
 pillow = "^7.2.0"
 whitenoise = "^5.2.0"
+djangorestframework-jwt = "^1.11.0"
 
 [tool.poetry.dev-dependencies]
 
