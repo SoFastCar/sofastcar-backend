@@ -8,7 +8,7 @@ IDENTITY_FILE = os.path.join(str(Path.home()), '.ssh', 'sofastcar.pem')
 USER = 'ubuntu'
 HOST = '13.209.3.76'
 TARGET = f'{USER}@{HOST}'
-DOCKER_IMAGE_TAG = 'juheoung0201/sofastcar'
+DOCKER_IMAGE_TAG = 'juheoung/sofastcar'
 PROJECT_NAME = 'sofastcar'
 ENV_FILE = os.path.join(os.path.join(str(Path.home()), 'repo/', 'sofastcar-backend'), '.env')
 

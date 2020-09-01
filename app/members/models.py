@@ -43,7 +43,6 @@ class Member(AbstractBaseUser):
     registration_id = models.CharField(
         verbose_name='주민등록번호',
         max_length=7,
-        unique=True,
     )
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
@@ -77,15 +76,16 @@ class Member(AbstractBaseUser):
 
     def save(self, *args, **kwargs):
         self.set_password(self.password)
+
         if not self.id:
             super().save(*args, **kwargs)
 
             registration_id = self.registration_id
-
             Profile.objects.create(
                 member=self,
                 birth=f'{registration_id[0:2]}-{registration_id[2:4]}-{registration_id[4:6]}'
             )
+        super().save(*args, **kwargs)
 
 
 class Profile(models.Model):
