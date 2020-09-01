@@ -5,14 +5,13 @@ from django.contrib.auth.models import (
 
 
 class MemberManager(BaseUserManager):
-    def create_user(self, email, password, confirm_password):
+    def create_user(self, email, password):
         """
         Creates and saves a User with the given email, date of
         birth and password.
         """
         if not email:
             raise ValueError('Users must have an email address')
-        print(confirm_password)
         user = self.model(
             email=self.normalize_email(email),
         )
@@ -39,6 +38,11 @@ class Member(AbstractBaseUser):
     email = models.EmailField(
         verbose_name='email address',
         max_length=255,
+        unique=True,
+    )
+    registration_id = models.CharField(
+        verbose_name='주민등록번호',
+        max_length=7,
         unique=True,
     )
     is_active = models.BooleanField(default=True)
@@ -73,4 +77,23 @@ class Member(AbstractBaseUser):
 
     def save(self, *args, **kwargs):
         self.set_password(self.password)
-        super().save(*args, **kwargs)
+        if not self.id:
+            super().save(*args, **kwargs)
+
+            registration_id = self.registration_id
+
+            Profile.objects.create(
+                member=self,
+                birth=f'{registration_id[0:2]}-{registration_id[2:4]}-{registration_id[4:6]}'
+            )
+
+
+class Profile(models.Model):
+    member = models.OneToOneField('members.Member',
+                                  related_name='profile',
+                                  on_delete=models.CASCADE,
+                                  unique=True,
+                                  )
+    image = models.ImageField(null=True)
+    birth = models.CharField(max_length=16)
+    credit_point = models.IntegerField(default=0)

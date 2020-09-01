@@ -2,9 +2,9 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from members.models import Member
+from members.models import Member, Profile
 from core.permissions import IsOwner, IsAnonymous
-from members.serializers import MembersSerializer, ChangePasswordSerializer
+from members.serializers import MembersSerializer, ChangePasswordSerializer, ProfileSerializer
 from rest_framework.viewsets import ModelViewSet
 
 
@@ -38,3 +38,8 @@ class MembersViewSet(ModelViewSet):
         request.user.save()
 
         return Response(status=status.HTTP_200_OK)
+
+
+class ProfileViewSet(ModelViewSet):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer
