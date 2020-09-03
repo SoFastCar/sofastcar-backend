@@ -108,7 +108,7 @@ class PhoneAuth(models.Model):
         self.ttl = timezone.now() + datetime.timedelta(minutes=5)
         super().save(*args, **kwargs)
 
-        # self.send_sms()
+        self.send_sms()
 
     def send_sms(self):
         timestamp = int(time.time() * 1000)
