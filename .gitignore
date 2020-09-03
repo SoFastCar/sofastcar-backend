@@ -1,5 +1,4 @@
 .idea/*
-migrations/
 .static/*
 .env
 
