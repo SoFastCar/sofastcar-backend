@@ -2,9 +2,10 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from members.models import Member, Profile
+from members.models import Member, Profile, PhoneAuth
 from core.permissions import IsOwner, IsAnonymous
-from members.serializers import MembersSerializer, ChangePasswordSerializer, ProfileSerializer
+from members.serializers import MembersSerializer, ChangePasswordSerializer, ProfileSerializer, PhoneAuthSerializer, \
+    CheckAuthNumberSerializer
 from rest_framework.viewsets import ModelViewSet
 
 
@@ -43,3 +44,25 @@ class MembersViewSet(ModelViewSet):
 class ProfileViewSet(ModelViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
+
+
+class PhoneAuthViewSet(ModelViewSet):
+    queryset = PhoneAuth.objects.all()
+    serializer_class = PhoneAuthSerializer
+
+    def get_serializer_class(self):
+        if self.action == 'check_auth_number':
+            return CheckAuthNumberSerializer
+        else:
+            return super().get_serializer_class()
+
+    @action(methods=['put'], detail=True)
+    def check_auth_number(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if int(instance.auth_number) == int(request.data['check_auth_number']):
+            return Response(status=status.HTTP_200_OK)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
