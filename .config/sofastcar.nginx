@@ -23,6 +23,6 @@ server {
     }
 
     location /static/ {
-        alias               /srv/sofastcar/.static/;
+        alias               http://sofastcar.s3.ap-northeast-2.amazonaws.com;
     }
 }
