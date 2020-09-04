@@ -14,7 +14,9 @@ import os
 import datetime
 from pathlib import Path
 
+import sentry_sdk
 from decouple import config
+from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent.parent
@@ -24,14 +26,11 @@ AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = 'ap-northeast-2'
 AWS_STATIC_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 AWS_AUTO_CREATE_BUCKET = True
 AWS_DEFAULT_ACL = None
 AWS_S3_SECURE_URLS = False
 
-STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # Static Setting
 STATIC_URL = '/static/'
@@ -62,7 +61,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
-    'storages',
 
     'members.apps.MembersConfig',
     'core.apps.CoreConfig',
@@ -162,3 +160,15 @@ JWT_AUTH = {
     'JWT_ALLOW_REFRESH': True,
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=30),
 }
+
+# Sentry settings
+sentry_sdk.init(
+    dsn="https://52919a96e568407eb50766411a6f854e@o427978.ingest.sentry.io/5417312",
+    integrations=[DjangoIntegration()],
+
+    # If you wish to associate users to errors (assuming you are using
+    # django.contrib.auth) you may enable sending PII data.
+    send_default_pii=True
+)
+
+
