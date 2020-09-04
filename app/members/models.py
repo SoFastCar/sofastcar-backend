@@ -15,24 +15,24 @@ from django.contrib.auth.models import (
 
 
 class MemberManager(BaseUserManager):
-    def _create_user(self, email, password, registration_id):
+    def _create_user(self, email, password):
         email = self.normalize_email(email)
-        user = self.model(email=email, password=password, registration_id=registration_id)
+        user = self.model(email=email, password=password)
         user.save()
         return user
 
-    def _create_superuser(self, email, password, registration_id):
+    def _create_superuser(self, email, password):
         email = self.normalize_email(email)
-        user = self.model(email=email, password=password, registration_id=registration_id)
+        user = self.model(email=email, password=password)
         user.is_admin = True
         user.save()
         return user
 
-    def create_user(self, email, password, registration_id):
-        return self._create_user(email, password, registration_id)
+    def create_user(self, email, password):
+        return self._create_user(email, password)
 
-    def create_superuser(self, email, password, registration_id):
-        return self._create_superuser(email, password, registration_id)
+    def create_superuser(self, email, password):
+        return self._create_superuser(email, password)
 
 
 class Member(AbstractBaseUser):
@@ -91,7 +91,7 @@ class Profile(models.Model):
                                   unique=True,
                                   )
     image = models.ImageField(null=True)
-    credit_point = models.IntegerField()
+    credit_point = models.IntegerField(default=100000)
 
 
 class PhoneAuth(models.Model):
