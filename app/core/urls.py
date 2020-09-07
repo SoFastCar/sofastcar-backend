@@ -5,7 +5,7 @@ from carzones.views import CarZoneViewSet
 from members.views import MembersViewSet, ProfileViewSet, PhoneAuthViewSet
 from prices.views import CarPriceViewSet
 
-router = SimpleRouter()
+router = SimpleRouter(trailing_slash=False)
 router.register('members', MembersViewSet)
 router.register('profile', ProfileViewSet)
 router.register('carzones', CarZoneViewSet)
