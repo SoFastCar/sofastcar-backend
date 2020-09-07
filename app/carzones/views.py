@@ -22,15 +22,17 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
         return queryset
 
     @action(detail=False)
-    def zones_by_distance(self, request, *args, **kwargs):
+    def list_by_distance(self, request, *args, **kwargs):
         lat_per_km = 1 / 109.958489129649955
         lon_per_km = 1 / 88.74
 
-        data = request.GET
-
-        std_lat = float(data['latitude'])
-        std_lon = float(data['longitude'])
-        distance = float(data['distance'])
+        try:
+            std_lat = float(request.query_params.get('lat'))
+            std_lon = float(request.query_params.get('lon'))
+            distance = float(request.query_params.get('distance'))
+        except Exception as e:
+            return Response('lat=float, lon=float, distance=float are required',
+                            status=status.HTTP_400_BAD_REQUEST)
 
         boundary = {
             "max_lat": std_lat + lat_per_km * distance,
