@@ -101,7 +101,7 @@ Django = ">=2.0"
 diff-match-patch = "*"
 
 [package.dependencies.tablib]
-extras = ["xls", "ods", "yaml", "xlsx", "html"]
+extras = ["xls", "xlsx", "html", "ods", "yaml"]
 version = ">=0.14.0"
 
 [[package]]
@@ -152,6 +152,18 @@ name = "docutils"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 version = "0.15.2"
+
+[[package]]
+category = "main"
+description = "Nested resources for the Django Rest Framework"
+name = "drf-nested-routers"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "0.91"
+
+[package.dependencies]
+Django = ">=1.11"
+djangorestframework = ">=3.6.0"
 
 [[package]]
 category = "main"
@@ -498,7 +510,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.12.0"
 
 [metadata]
-content-hash = "85990d4f03d727ad72894387feb4aab4d0ac2707c090bd7b907c6b637a22cd09"
+content-hash = "97a0f112450dc51569c7563bf2f52a5d7ced91a415f8c890c3598664a4686379"
 lock-version = "1.0"
 python-versions = "^3.7"
 
@@ -555,6 +567,10 @@ docutils = [
     {file = "docutils-0.15.2-py2-none-any.whl", hash = "sha256:9e4d7ecfc600058e07ba661411a2b7de2fd0fafa17d1a7f7361cd47b1175c827"},
     {file = "docutils-0.15.2-py3-none-any.whl", hash = "sha256:6c4f696463b79f1fb8ba0c594b63840ebd41f059e92b31957c46b74a4599b6d0"},
     {file = "docutils-0.15.2.tar.gz", hash = "sha256:a2aeea129088da402665e92e0b25b04b073c04b2dce4ab65caaa38b7ce2e1a99"},
+]
+drf-nested-routers = [
+    {file = "drf-nested-routers-0.91.tar.gz", hash = "sha256:46e5c3abc15c782cafafd7d75028e8f9121bbc6228e3599bbb48a3daa4585034"},
+    {file = "drf_nested_routers-0.91-py2.py3-none-any.whl", hash = "sha256:60c1e1f5cc801e757d26a8138e61c44419ef800c213c3640c5b6138e77d46762"},
 ]
 et-xmlfile = [
     {file = "et_xmlfile-1.0.1.tar.gz", hash = "sha256:614d9722d572f6246302c4491846d2c393c199cfa4edc9af593437691683335b"},

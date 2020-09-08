@@ -1,3 +1,6 @@
+import io
+
+from PIL import Image
 from django.db import models
 
 
@@ -5,7 +8,7 @@ from django.db import models
 class Car(models.Model):
     number = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=30)
-    zone = models.ForeignKey('carzones.CarZone', related_name='socar_zones', on_delete=models.CASCADE)
+    zone = models.ForeignKey('carzones.CarZone', related_name='cars', on_delete=models.CASCADE)
     image = models.ImageField(null=True)
     manufacturer = models.CharField(max_length=20)
     fuel = models.CharField(max_length=20)
@@ -16,3 +19,14 @@ class Car(models.Model):
     manual_page = models.CharField(max_length=100, default='')
     safety_option = models.CharField(max_length=255, default='')
     convenience_option = models.CharField(max_length=255, default='')
+
+
+class ImageMaker:
+    @staticmethod
+    def temporary_image(name='test.jpg'):
+        file = io.BytesIO()
+        image = Image.new('RGB', (1, 1))
+        image.save(file, 'jpeg')
+        file.name = name
+        file.seek(0)
+        return file

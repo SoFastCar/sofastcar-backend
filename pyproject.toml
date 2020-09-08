@@ -23,6 +23,7 @@ djangorestframework-jwt = "^1.11.0"
 sentry-sdk = "^0.17.3"
 model_bakery = "^1.1.1"
 munch = "^2.5.0"
+drf-nested-routers = "^0.91"
 
 [tool.poetry.dev-dependencies]
 

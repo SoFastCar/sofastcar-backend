@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
 
+from core.permissions import IsOwner
 from .models import CarZone
 from .serializers import CarZoneSerializer
 
@@ -13,6 +14,7 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
                      GenericViewSet):
     queryset = CarZone.objects.all()
     serializer_class = CarZoneSerializer
+    permission_classes = [IsOwner, ]
 
     def get_queryset(self):
         queryset = super().get_queryset()
