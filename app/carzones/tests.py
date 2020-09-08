@@ -63,6 +63,18 @@ class CarZoneTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(CarZone.objects.filter(address__icontains='성수동').count(), self.expected_count)
 
+    def test_should_list_CarZones_from_search_name(self):
+        """
+        Request : GET - /carzones/?keyword=name
+        """
+        CarZone.objects.create(zone_id='test001', name='zone1', address='서울 광진구 자양동')
+        CarZone.objects.create(zone_id='test002', name='zone2', address='서울 성동구 성수동1가')
+        CarZone.objects.create(zone_id='test003', name='nothing', address='서울 성동구 성수동2가')
+        response = self.client.get('/carzones?keyword=zone')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(CarZone.objects.filter(name__icontains='zone').count(), self.expected_count)
+
     def test_should_list_CarZones_filter_by_distance(self):
         """
         Request : GET - /carzones/list_by_distance?lat=123.456&lon=123.456&distance=1

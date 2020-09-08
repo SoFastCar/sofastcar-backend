@@ -1,4 +1,5 @@
 # Create your views here.
+from django.db.models import Q
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.viewsets import GenericViewSet
@@ -6,7 +7,7 @@ from rest_framework.response import Response
 
 from core.permissions import IsOwner
 from .models import CarZone
-from .serializers import CarZoneSerializer
+from .serializers import CarZoneSerializer, SummaryCarZoneSerializer
 
 
 class CarZoneViewSet(mixins.RetrieveModelMixin,
@@ -14,13 +15,22 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
                      GenericViewSet):
     queryset = CarZone.objects.all()
     serializer_class = CarZoneSerializer
-    permission_classes = [IsOwner, ]
+
+    # permission_classes = [IsOwner, ]
+
+    def get_serializer_class(self):
+        if self.action == 'choice_info':
+            return SummaryCarZoneSerializer
+        return super().get_serializer_class()
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        keyword = self.request.query_params.get('keyword')
-        if keyword:
-            queryset = CarZone.objects.filter(address__icontains=keyword)
+        if self.action in ('list_by_distance', 'choice_info'):
+            return queryset
+        else:
+            keyword = self.request.query_params.get('keyword')
+            if keyword:
+                queryset = CarZone.objects.filter(Q(address__icontains=keyword) | Q(name__icontains=keyword))
         return queryset
 
     @action(detail=False)
@@ -49,3 +59,9 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
 
         serializer = self.get_serializer(zones, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True)
+    def choice_info(self, request, *args, **kwargs):
+        # 시간당 가격 계산 로직?
+        return super().retrieve(request, *args, **kwargs)
+
