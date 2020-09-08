@@ -2,6 +2,7 @@
 from django.db.models import Q
 from rest_framework import mixins, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
 
@@ -15,8 +16,7 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
                      GenericViewSet):
     queryset = CarZone.objects.all()
     serializer_class = CarZoneSerializer
-
-    # permission_classes = [IsOwner, ]
+    permission_classes = [IsAuthenticated, ]
 
     def get_serializer_class(self):
         if self.action == 'choice_info':

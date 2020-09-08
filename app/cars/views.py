@@ -1,5 +1,6 @@
 # Create your views here.
 from rest_framework import mixins
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
 from cars.models import Car
@@ -12,7 +13,7 @@ class CarViewSet(mixins.RetrieveModelMixin,
                  GenericViewSet):
     queryset = Car.objects.all()
     serializer_class = CarSerializer
-    permission_classes = [IsOwner, ]
+    permission_classes = [IsAuthenticated, ]
 
     def filter_queryset(self, queryset):
         queryset = queryset.filter(zone=self.kwargs.get('carzone_pk'))
