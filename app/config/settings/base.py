@@ -67,9 +67,11 @@ INSTALLED_APPS = [
     'carzones.apps.CarzonesConfig',
     'cars',
     'prices',
+    'reservations.apps.ReservationsConfig',
 
     'import_export',
     'storages',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -170,5 +172,3 @@ sentry_sdk.init(
     # django.contrib.auth) you may enable sending PII data.
     send_default_pii=True
 )
-
-

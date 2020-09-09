@@ -90,6 +90,14 @@ bcrypt = ["bcrypt"]
 
 [[package]]
 category = "main"
+description = "Extensions for Django"
+name = "django-extensions"
+optional = false
+python-versions = ">=3.5"
+version = "3.0.8"
+
+[[package]]
+category = "main"
 description = "Django application and library for importing and exporting data with included admin integration."
 name = "django-import-export"
 optional = false
@@ -101,7 +109,7 @@ Django = ">=2.0"
 diff-match-patch = "*"
 
 [package.dependencies.tablib]
-extras = ["xlsx", "ods", "html", "yaml", "xls"]
+extras = ["yaml", "xls", "xlsx", "ods", "html"]
 version = ">=0.14.0"
 
 [[package]]
@@ -472,7 +480,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.12.0"
 
 [metadata]
-content-hash = "1dbc1d4774a5d6281de58371034e3dbc48cc00c35cbdf14bb76afbab198e2def"
+content-hash = "126945a4976547f082227fd55a55231bf7f5d078591079cb1a054684c682738e"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -507,6 +515,10 @@ diff-match-patch = [
 django = [
     {file = "Django-3.1.1-py3-none-any.whl", hash = "sha256:b5fbb818e751f660fa2d576d9f40c34a4c615c8b48dd383f5216e609f383371f"},
     {file = "Django-3.1.1.tar.gz", hash = "sha256:59c8125ca873ed3bdae9c12b146fbbd6ed8d0f743e4cf5f5817af50c51f1fc2f"},
+]
+django-extensions = [
+    {file = "django-extensions-3.0.8.tar.gz", hash = "sha256:a67747508ec39583892fbddf57e0b66b3f332a885ef5520698bc2e1cb351955a"},
+    {file = "django_extensions-3.0.8-py3-none-any.whl", hash = "sha256:c7c2ca48ccc2ecc4427c908cd3a6dc114fc7534092de51209b02f84ccafe648b"},
 ]
 django-import-export = [
     {file = "django-import-export-2.3.0.tar.gz", hash = "sha256:21464304cb64e57809f3d6f5ad45108d5b02c556ab115b493a547304d2dddc70"},
