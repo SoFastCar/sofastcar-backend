@@ -36,6 +36,8 @@ class ReservationCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         try:
             car = Car.objects.get(pk=validated_data.get('car_id'))
+
+            # 이용가능한 car 선택했다고 가정하고 생성 (exception 추가 예정)
             reservation = Reservation.objects.create(car=car, **validated_data)
 
             # 해당 사용자의 크레딧에서 요금 차감
@@ -61,6 +63,44 @@ class ReservationInsuranceUpdateSerializer(serializers.Serializer):
             instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
         elif instance.reservation_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
+        instance.member.profile.save()
+        return instance
+
+    def to_representation(self, instance):
+        return ReservationSerializer(instance).data
+
+
+class ReservationTimeUpdateSerializer(serializers.Serializer):
+    from_when = serializers.DateTimeField()
+    to_when = serializers.DateTimeField()
+
+    def update(self, instance, validated_data):
+        paid_credit = instance.reservation_credit()
+        reserved_times = instance.car.reservations.exclude(pk=instance.pk).filter(is_finished=False).values(
+            'from_when', 'to_when'
+        )
+
+        if reserved_times:
+            for time in reserved_times:
+                if (
+                        validated_data['from_when'] < time['to_when'] < validated_data['to_when']
+                ) or (
+                        validated_data['from_when'] < time['from_when'] < validated_data['to_when']
+                ) or (
+                        validated_data['from_when'] > time['from_when'] and validated_data['to_when'] < time['to_when']
+                ):
+                    raise ValueError('해당 이용시간대는 사용 불가능합니다.')
+
+        instance.from_when = validated_data['from_when']
+        instance.to_when = validated_data['to_when']
+        instance.save()
+
+        # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
+        if instance.reservation_credit() > paid_credit:
+            instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+        elif instance.reservation_credit() < paid_credit:
+            instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
+
         instance.member.profile.save()
         return instance
 
