@@ -114,8 +114,6 @@ DATABASES = {
     }
 }
 
-# AUTH_USER_MODEL = 'members.Member'
-
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
 
@@ -150,9 +148,8 @@ USE_TZ = True
 AUTH_USER_MODEL = 'members.Member'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication'
-    ]
+    'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework_jwt.authentication.JSONWebTokenAuthentication'],
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 
 JWT_AUTH = {
