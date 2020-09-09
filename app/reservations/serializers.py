@@ -106,3 +106,9 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return ReservationSerializer(instance).data
+
+
+class CarReservedTimesSerializer(serializers.Serializer):
+    reservation_id = serializers.IntegerField(source='id')
+    from_when = serializers.DateTimeField()
+    to_when = serializers.DateTimeField()

@@ -2,9 +2,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
+from cars.models import Car
+from carzones.models import CarZone
 from reservations.models import Reservation
 from reservations.serializers import (
-    ReservationCreateSerializer, ReservationInsuranceUpdateSerializer, ReservationTimeUpdateSerializer
+    ReservationCreateSerializer, ReservationInsuranceUpdateSerializer, ReservationTimeUpdateSerializer,
+    CarReservedTimesSerializer
 )
 
 
@@ -24,7 +27,7 @@ class ReservationInsuranceUpdateViews(generics.UpdateAPIView):
 
     def get_object(self):
         try:
-            reservation = Reservation.objects.get(pk=self.kwargs['pk'], member=self.request.user)
+            reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
             return reservation
         except ObjectDoesNotExist:
             raise ValueError('해당하는 reservation 인스턴스가 존재하지 않습니다.')
@@ -37,7 +40,21 @@ class ReservationTimeUpdateViews(generics.UpdateAPIView):
 
     def get_object(self):
         try:
-            reservation = Reservation.objects.get(pk=self.kwargs['pk'], member=self.request.user)
+            reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
             return reservation
         except ObjectDoesNotExist:
             raise ValueError('해당하는 reservation 인스턴스가 존재하지 않습니다.')
+
+
+class CarReservedTimesViews(generics.ListAPIView):
+    queryset = Reservation.objects.all()
+    serializer_class = CarReservedTimesSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        try:
+            car = Car.objects.get(pk=self.kwargs['car_id'])
+            reservations = Reservation.objects.filter(is_finished=False, car=car)
+            return reservations
+        except ObjectDoesNotExist:
+            raise ValueError('해당하는 carzone 인스턴스가 존재하지 않습니다.')
