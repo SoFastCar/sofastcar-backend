@@ -37,6 +37,10 @@ class ReservationCreateSerializer(serializers.Serializer):
         try:
             car = Car.objects.get(pk=validated_data.get('car_id'))
             reservation = Reservation.objects.create(car=car, **validated_data)
+
+            # 해당 사용자의 크레딧에서 요금 차감
+            reservation.member.profile.credit_point -= reservation.reservation_credit()
+            reservation.member.profile.save()
             return reservation
         except ObjectDoesNotExist:
             raise ValueError('해당하는 car 인스턴스가 존재하지 않습니다.')

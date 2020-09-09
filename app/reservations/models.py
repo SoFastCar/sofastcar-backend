@@ -48,15 +48,6 @@ class Reservation(models.Model):
         return int(round(self.car.carprice.standard_price * self.time() / 30, -2) + insurance)
 
 
-# 예약시 해당 사용자의 크레딧에서 차감
-@receiver(post_save, sender=Reservation)
-def deduct_credit(instance, created, **kwargs):
-    if created:
-        instance.member.profile.credit_point -= instance.reservation_credit()
-        instance.member.profile.save()
-        return f'보유 크레딧에서 요금이 {instance.reservation_credit()} 차감되었습니다.'
-
-
 # 결제 인스턴스 생성시 예매 인스턴스에서 is_finished True로 update
 @receiver(post_save, sender=Payment)
 def reservation_finished(instance, created, **kwargs):
