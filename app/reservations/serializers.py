@@ -43,3 +43,22 @@ class ReservationCreateSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return ReservationSerializer(instance).data
+
+
+class ReservationInsuranceUpdateSerializer(serializers.Serializer):
+    insurance = serializers.CharField()
+
+    def update(self, instance, validated_data):
+        paid_credit = instance.reservation_credit()
+        instance.insurance = validated_data['insurance']
+        instance.save()
+
+        if instance.reservation_credit() > paid_credit:
+            instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+        elif instance.reservation_credit() < paid_credit:
+            instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
+        instance.member.profile.save()
+        return instance
+
+    def to_representation(self, instance):
+        return ReservationSerializer(instance).data
