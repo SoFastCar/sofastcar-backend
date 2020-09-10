@@ -26,5 +26,6 @@ from config import settings
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
+    path('reservation/', include('reservations.urls')),  # 뷰셋으로 수정후 core에 병합 예정
 ]
 # urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

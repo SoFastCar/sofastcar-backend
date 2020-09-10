@@ -67,9 +67,11 @@ INSTALLED_APPS = [
     'carzones.apps.CarzonesConfig',
     'cars',
     'prices',
+    'reservations.apps.ReservationsConfig',
 
     'import_export',
     'storages',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
