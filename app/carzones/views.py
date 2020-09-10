@@ -18,6 +18,7 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
     serializer_class = CarZoneSerializer
     permission_classes = [IsAuthenticated, ]
 
+
     def get_serializer_class(self):
         if self.action == 'choice_info':
             return SummaryCarZoneSerializer

@@ -8,7 +8,6 @@ class CarZoneSerializer(ModelSerializer):
     class Meta:
         model = CarZone
         fields = ['id',
-                  'zone_id',
                   'name',
                   'address',
                   'region',
@@ -19,7 +18,6 @@ class CarZoneSerializer(ModelSerializer):
                   'type',
                   'operating_time']
         read_only_fields = ['id',
-                            'zone_id',
                             'name',
                             'address',
                             'region',

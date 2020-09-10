@@ -9,7 +9,6 @@ from carzones.models import CarZone
 @admin.register(CarZone)
 class CarZoneAdmin(ImportExportMixin, admin.ModelAdmin):
     list_display = ('id',
-                    'zone_id',
                     'name',
                     'address',
                     'region',
