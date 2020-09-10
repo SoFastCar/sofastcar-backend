@@ -1,3 +1,4 @@
+Warning: The lock file is not up to date with the latest changes in pyproject.toml. You may be getting outdated dependencies. Run update to update them.
 asgiref==3.2.10 \
     --hash=sha256:9fc6fb5d39b8af147ba40765234fa822b39818b12cc80b35ad9b0cef3a476aed \
     --hash=sha256:7e51911ee147dd685c3c8b805c0ad0cb58d360987b56953878f8c06d2d1c6f1a
@@ -22,6 +23,9 @@ diff-match-patch==20200713 \
 django==3.1.1 \
     --hash=sha256:b5fbb818e751f660fa2d576d9f40c34a4c615c8b48dd383f5216e609f383371f \
     --hash=sha256:59c8125ca873ed3bdae9c12b146fbbd6ed8d0f743e4cf5f5817af50c51f1fc2f
+django-extensions==3.0.8 \
+    --hash=sha256:a67747508ec39583892fbddf57e0b66b3f332a885ef5520698bc2e1cb351955a \
+    --hash=sha256:c7c2ca48ccc2ecc4427c908cd3a6dc114fc7534092de51209b02f84ccafe648b
 django-import-export==2.3.0 \
     --hash=sha256:21464304cb64e57809f3d6f5ad45108d5b02c556ab115b493a547304d2dddc70 \
     --hash=sha256:8ffddb1f39f2768a747df90c8b55c46c7198e41e9f78bc83427a5b7fc0e78bac

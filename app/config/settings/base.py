@@ -152,6 +152,8 @@ AUTH_USER_MODEL = 'members.Member'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework_jwt.authentication.JSONWebTokenAuthentication'],
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+    'DEFAULT_PAGINATION_CLASS': 'core.paginations.Pagination',
+    'PAGE_SIZE': 10
 }
 
 JWT_AUTH = {
