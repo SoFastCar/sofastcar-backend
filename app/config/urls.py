@@ -30,5 +30,7 @@ urlpatterns = [
     url(r'^api-jwt-auth/$', obtain_jwt_token),  # JWT 토큰 생성
     url(r'^api-jwt-auth/refresh/$', refresh_jwt_token),  # JWT 토큰 갱신
     url(r'^api-jwt-auth/verify/$', verify_jwt_token),  # JWT 토큰 확인
+
+    path('reservation/', include('reservations.urls')),  # 뷰셋으로 수정후 core에 병합 예정
 ]
 # urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
