@@ -7,7 +7,7 @@ from carzones.models import CarZone
 from reservations.models import Reservation
 from reservations.serializers import (
     ReservationCreateSerializer, ReservationInsuranceUpdateSerializer, ReservationTimeUpdateSerializer,
-    CarReservedTimesSerializer, CarzoneAvailableCarsSerializer
+    CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarzoneDetailSerializer
 )
 
 
@@ -54,16 +54,35 @@ class CarReservedTimesViews(generics.ListAPIView):
             reservations = Reservation.objects.filter(is_finished=False, car=car)
             return reservations
         except ObjectDoesNotExist:
-            raise ValueError('해당하는 carzone 인스턴스가 존재하지 않습니다.')
+            raise ValueError('해당하는 car 인스턴스가 존재하지 않습니다.')
 
 
 class CarzoneAvailableCarsViews(generics.RetrieveAPIView):
-    queryset = CarZone.objects.all()
     serializer_class = CarzoneAvailableCarsSerializer
     permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        try:
+            carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
+            return carzone
+        except ObjectDoesNotExist:
+            raise ValueError('해당하는 carzone 인스턴스가 존재하지 않습니다.')
 
     def get_serializer_context(self):
         return {
             'to_when': self.request.data['to_when'],
             'from_when': self.request.data['from_when']
         }
+
+
+class CarzoneDetailViews(generics.RetrieveAPIView):
+    queryset = CarZone.objects.all()
+    serializer_class = CarzoneDetailSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        try:
+            carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
+            return carzone
+        except ObjectDoesNotExist:
+            raise ValueError('해당하는 carzone 인스턴스가 존재하지 않습니다.')

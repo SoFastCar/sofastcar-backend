@@ -4,6 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from cars.models import Car
+from carzones.models import CarZone
 from reservations.models import Reservation
 
 
@@ -171,3 +172,15 @@ class CarzoneAvailableCarsSerializer(serializers.Serializer):
 
         serializer = CarsSerializer(instance=cars, many=True, context=context)
         return serializer.data
+
+
+class CarzoneDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CarZone
+        fields = (
+            'address',
+            # 'image',
+            'detail_info',
+            'type',
+            'operating_time',
+        )
