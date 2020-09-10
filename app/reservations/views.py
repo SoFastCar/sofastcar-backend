@@ -7,7 +7,7 @@ from carzones.models import CarZone
 from reservations.models import Reservation
 from reservations.serializers import (
     ReservationCreateSerializer, ReservationInsuranceUpdateSerializer, ReservationTimeUpdateSerializer,
-    CarReservedTimesSerializer
+    CarReservedTimesSerializer, CarzoneAvailableCarsSerializer
 )
 
 
@@ -21,7 +21,6 @@ class ReservationCreateViews(generics.CreateAPIView):
 
 
 class ReservationInsuranceUpdateViews(generics.UpdateAPIView):
-    queryset = Reservation.objects.all()
     serializer_class = ReservationInsuranceUpdateSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -34,7 +33,6 @@ class ReservationInsuranceUpdateViews(generics.UpdateAPIView):
 
 
 class ReservationTimeUpdateViews(generics.UpdateAPIView):
-    queryset = Reservation.objects.all()
     serializer_class = ReservationTimeUpdateSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -47,7 +45,6 @@ class ReservationTimeUpdateViews(generics.UpdateAPIView):
 
 
 class CarReservedTimesViews(generics.ListAPIView):
-    queryset = Reservation.objects.all()
     serializer_class = CarReservedTimesSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -58,3 +55,15 @@ class CarReservedTimesViews(generics.ListAPIView):
             return reservations
         except ObjectDoesNotExist:
             raise ValueError('해당하는 carzone 인스턴스가 존재하지 않습니다.')
+
+
+class CarzoneAvailableCarsViews(generics.RetrieveAPIView):
+    queryset = CarZone.objects.all()
+    serializer_class = CarzoneAvailableCarsSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_serializer_context(self):
+        return {
+            'to_when': self.request.data['to_when'],
+            'from_when': self.request.data['from_when']
+        }

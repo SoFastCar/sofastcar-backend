@@ -1,3 +1,5 @@
+import datetime
+
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
@@ -112,3 +114,60 @@ class CarReservedTimesSerializer(serializers.Serializer):
     reservation_id = serializers.IntegerField(source='id')
     from_when = serializers.DateTimeField()
     to_when = serializers.DateTimeField()
+
+
+class CarsSerializer(serializers.ModelSerializer):
+    price = serializers.SerializerMethodField('get_price')
+    seater = serializers.IntegerField(source='riding_capacity')
+
+    class Meta:
+        model = Car
+        fields = (
+            'image',
+            'name',
+            'price',
+            'seater',
+        )
+
+    def get_price(self, obj):
+        time = (datetime.datetime.strptime(self.context.get('to_when'),
+                                           '%Y-%m-%dT%H:%M:%S.%f') - datetime.datetime.strptime(
+            self.context.get('from_when'), '%Y-%m-%dT%H:%M:%S.%f')).total_seconds() / 60
+        return int(round(obj.carprice.standard_price * time / 30, -2))
+
+
+class CarzoneAvailableCarsSerializer(serializers.Serializer):
+    address = serializers.CharField()
+    # image = serializers.ImageField()
+    from_when = serializers.SerializerMethodField('get_from_when')
+    to_when = serializers.SerializerMethodField('get_to_when')
+    cars = serializers.SerializerMethodField('get_cars')
+
+    def get_from_when(self, obj):
+        return self.context.get('from_when')
+
+    def get_to_when(self, obj):
+        return self.context.get('to_when')
+
+    def get_cars(self, obj):
+        cars = obj.cars.exclude(
+            reservations__is_finished=False,
+            reservations__from_when__lt=self.context.get('to_when'),
+            reservations__to_when__gt=self.context.get('to_when')
+        ).exclude(
+            reservations__is_finished=False,
+            reservations__from_when__lt=self.context.get('from_when'),
+            reservations__to_when__gt=self.context.get('from_when')
+        ).exclude(
+            reservations__is_finished=False,
+            reservations__from_when__gt=self.context.get('from_when'),
+            reservations__to_when__lt=self.context.get('to_when')
+        )
+
+        context = {
+            'from_when': self.context.get('from_when'),
+            'to_when': self.context.get('to_when')
+        }
+
+        serializer = CarsSerializer(instance=cars, many=True, context=context)
+        return serializer.data
