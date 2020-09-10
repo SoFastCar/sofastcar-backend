@@ -10,15 +10,15 @@ class CarZone(models.Model):
         INCHEON = 'INCHEON', _('인천')
 
     class ChoiceOperatingTime(models.TextChoices):
-        A_TIME = 'A', _('24시간')
-        B_TIME = 'B', _('06:00 ~ 23:59')
-        C_TIME = 'C', _('07:00 ~ 23:59')
-        D_TIME = 'D', _('05:30 ~ 23:59')
+        A_TIME = '24시간', _('24시간')
+        B_TIME = '06:00 ~ 23:59', _('06:00 ~ 23:59')
+        C_TIME = '07:00 ~ 23:59', _('07:00 ~ 23:59')
+        D_TIME = '05:30 ~ 23:59', _('05:30 ~ 23:59')
 
     class ChoiceZoneType(models.TextChoices):
-        A_TYPE = 'A', _('지하')
-        B_TYPE = 'B', _('지상')
-        C_TYPE = 'C', _('기계식')
+        A_TYPE = '지하', _('지하')
+        B_TYPE = '지상', _('지상')
+        C_TYPE = '기계식', _('기계식')
 
     address = models.CharField(max_length=255)
     name = models.CharField(max_length=100)
@@ -33,5 +33,5 @@ class CarZone(models.Model):
     detail_info = models.CharField(max_length=100, default='')
     type = models.CharField(max_length=10, choices=ChoiceZoneType.choices,
                             default=ChoiceZoneType.B_TYPE, help_text='주차장타입')
-    operating_time = models.CharField(max_length=10, choices=ChoiceOperatingTime.choices,
+    operating_time = models.CharField(max_length=20, choices=ChoiceOperatingTime.choices,
                                       default=ChoiceOperatingTime.A_TIME, help_text='운영시간')
