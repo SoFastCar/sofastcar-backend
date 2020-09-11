@@ -12,8 +12,8 @@ urlpatterns = [
 
     # update할 carzone에서 이용가능한 car 리스트
     path('<int:reservation_id>/carzones/<int:carzone_id>/cars/', ReservationCarzoneAvailableCarsViews.as_view()),
-    # car 리스트 중 선택하여 reservation의 car update
-    path('<int:reservation_id>/car/', ReservationCarUpdateViews.as_view()),
+    # car 리스트 중 선택하여 update
+    path('<int:reservation_id>/carzones/<int:carzone_id>/car/', ReservationCarUpdateViews.as_view()),
 
     path('cars/<int:car_id>/times/', CarReservedTimesViews.as_view()),
 

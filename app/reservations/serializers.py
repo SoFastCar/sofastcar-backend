@@ -41,13 +41,35 @@ class ReservationCreateSerializer(serializers.Serializer):
         try:
             car = Car.objects.get(pk=validated_data.get('car_id'))
 
-            # 이용가능한 car 선택했다고 가정하고 생성 (exception 추가 예정)
+            if not (30 * 60 <= (
+                    validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
+                raise ValueError('최소 30분부터 최대 30일까지 설정 가능합니다.')
+
+            reserved_times = car.reservations.filter(is_finished=False).values(
+                'from_when', 'to_when'
+            )
+            if reserved_times:
+                for time in reserved_times:
+                    if (
+                            validated_data['from_when'] <= time['to_when'] <= validated_data['to_when']
+                    ) or (
+                            validated_data['from_when'] <= time['from_when'] <= validated_data['to_when']
+                    ) or (
+                            validated_data['from_when'] >= time['from_when'] and validated_data['to_when'] <= time[
+                        'to_when']
+                    ):
+                        raise ValueError('해당 이용시간대는 사용 불가능합니다.')
+
             reservation = Reservation.objects.create(car=car, **validated_data)
 
-            # 해당 사용자의 크레딧에서 요금 차감
-            reservation.member.profile.credit_point -= reservation.reservation_credit()
-            reservation.member.profile.save()
-            return reservation
+            if reservation.member.profile.credit_point < reservation.reservation_credit():
+                reservation.delete()
+                raise ValueError('크레딧이 부족합니다.')
+            else:
+                # 해당 사용자의 크레딧에서 요금 차감
+                reservation.member.profile.credit_point -= reservation.reservation_credit()
+                reservation.member.profile.save()
+                return reservation
         except ObjectDoesNotExist:
             raise ValueError('해당하는 car 인스턴스가 존재하지 않습니다.')
 
@@ -64,7 +86,10 @@ class ReservationInsuranceUpdateSerializer(serializers.Serializer):
         instance.save()
 
         if instance.reservation_credit() > paid_credit:
-            instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+            if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+                raise ValueError('크레딧이 부족합니다.')
+            else:
+                instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
         elif instance.reservation_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
         instance.member.profile.save()
@@ -84,14 +109,19 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
             'from_when', 'to_when'
         )
 
+        if not (30 * 60 <= (
+                validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
+            raise ValueError('최소 30분부터 최대 30일까지 설정 가능합니다.')
+
         if reserved_times:
             for time in reserved_times:
                 if (
-                        validated_data['from_when'] < time['to_when'] < validated_data['to_when']
+                        validated_data['from_when'] <= time['to_when'] <= validated_data['to_when']
                 ) or (
-                        validated_data['from_when'] < time['from_when'] < validated_data['to_when']
+                        validated_data['from_when'] <= time['from_when'] <= validated_data['to_when']
                 ) or (
-                        validated_data['from_when'] > time['from_when'] and validated_data['to_when'] < time['to_when']
+                        validated_data['from_when'] >= time['from_when'] and validated_data['to_when'] <= time[
+                    'to_when']
                 ):
                     raise ValueError('해당 이용시간대는 사용 불가능합니다.')
 
@@ -101,7 +131,10 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
 
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.reservation_credit() > paid_credit:
-            instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+            if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+                raise ValueError('크레딧이 부족합니다.')
+            else:
+                instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
         elif instance.reservation_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
 
@@ -118,14 +151,19 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         paid_credit = instance.reservation_credit()
 
-        # 이용가능한 car 중 선택했다고 가정 (예외처리 추가 예정)
         car = Car.objects.get(pk=validated_data['car_id'])
+        if car.zone.id != self.context.get('carzone_id'):
+            raise ValueError('해당 carzone의 car 인스턴스가 아닙니다.')
+
         instance.car = car
         instance.save()
 
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.reservation_credit() > paid_credit:
-            instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+            if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+                raise ValueError('크레딧이 부족합니다.')
+            else:
+                instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
         elif instance.reservation_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
 
@@ -183,14 +221,14 @@ class CarzoneAvailableCarsSerializer(serializers.Serializer):
 
     def get_cars(self, obj):
         cars = obj.cars.exclude(reservations__is_finished=True).exclude(
-            reservations__from_when__lt=self.context.get('to_when'),
-            reservations__to_when__gt=self.context.get('to_when')
+            reservations__from_when__lte=self.context.get('to_when'),
+            reservations__to_when__gte=self.context.get('to_when')
         ).exclude(
-            reservations__from_when__lt=self.context.get('from_when'),
-            reservations__to_when__gt=self.context.get('from_when')
+            reservations__from_when__lte=self.context.get('from_when'),
+            reservations__to_when__gte=self.context.get('from_when')
         ).exclude(
-            reservations__from_when__gt=self.context.get('from_when'),
-            reservations__to_when__lt=self.context.get('to_when')
+            reservations__from_when__gte=self.context.get('from_when'),
+            reservations__to_when__lte=self.context.get('to_when')
         )
 
         context = {
