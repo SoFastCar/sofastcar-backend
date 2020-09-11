@@ -4,6 +4,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from cars.models import Car
+from reservations.exceptions import (
+    NotAvailableCarException, ShortCreditException, TooLessOrTooMuchTimeException, NotAvailableTimeException,
+    CarDoesNotExistException
+)
 from reservations.models import Reservation
 
 
@@ -43,7 +47,7 @@ class ReservationCreateSerializer(serializers.Serializer):
 
             if not (30 * 60 <= (
                     validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
-                raise ValueError('최소 30분부터 최대 30일까지 설정 가능합니다.')
+                raise TooLessOrTooMuchTimeException
 
             reserved_times = car.reservations.filter(is_finished=False).values(
                 'from_when', 'to_when'
@@ -58,20 +62,20 @@ class ReservationCreateSerializer(serializers.Serializer):
                             validated_data['from_when'] >= time['from_when'] and validated_data['to_when'] <= time[
                         'to_when']
                     ):
-                        raise ValueError('해당 이용시간대는 사용 불가능합니다.')
+                        raise NotAvailableTimeException
 
             reservation = Reservation.objects.create(car=car, **validated_data)
 
             if reservation.member.profile.credit_point < reservation.reservation_credit():
                 reservation.delete()
-                raise ValueError('크레딧이 부족합니다.')
+                raise ShortCreditException
             else:
                 # 해당 사용자의 크레딧에서 요금 차감
                 reservation.member.profile.credit_point -= reservation.reservation_credit()
                 reservation.member.profile.save()
                 return reservation
         except ObjectDoesNotExist:
-            raise ValueError('해당하는 car 인스턴스가 존재하지 않습니다.')
+            raise CarDoesNotExistException
 
     def to_representation(self, instance):
         return ReservationSerializer(instance).data
@@ -87,7 +91,7 @@ class ReservationInsuranceUpdateSerializer(serializers.Serializer):
 
         if instance.reservation_credit() > paid_credit:
             if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
-                raise ValueError('크레딧이 부족합니다.')
+                raise ShortCreditException
             else:
                 instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
         elif instance.reservation_credit() < paid_credit:
@@ -111,7 +115,7 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
 
         if not (30 * 60 <= (
                 validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
-            raise ValueError('최소 30분부터 최대 30일까지 설정 가능합니다.')
+            raise TooLessOrTooMuchTimeException
 
         if reserved_times:
             for time in reserved_times:
@@ -123,7 +127,7 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
                         validated_data['from_when'] >= time['from_when'] and validated_data['to_when'] <= time[
                     'to_when']
                 ):
-                    raise ValueError('해당 이용시간대는 사용 불가능합니다.')
+                    raise NotAvailableTimeException
 
         instance.from_when = validated_data['from_when']
         instance.to_when = validated_data['to_when']
@@ -132,7 +136,7 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.reservation_credit() > paid_credit:
             if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
-                raise ValueError('크레딧이 부족합니다.')
+                raise TooLessOrTooMuchTimeException
             else:
                 instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
         elif instance.reservation_credit() < paid_credit:
@@ -154,7 +158,7 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
         car = Car.objects.get(pk=validated_data['car_id'])
 
         if car not in self.context.get('cars'):
-            raise ValueError('해당 carzone에서 이용가능한 car id가 아닙니다.')
+            raise NotAvailableCarException
 
         instance.car = car
         instance.save()
@@ -162,7 +166,7 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.reservation_credit() > paid_credit:
             if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
-                raise ValueError('크레딧이 부족합니다.')
+                raise ShortCreditException
             else:
                 instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
         elif instance.reservation_credit() < paid_credit:
