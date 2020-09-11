@@ -37,7 +37,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 class ReservationCreateSerializer(serializers.Serializer):
     car_id = serializers.IntegerField()
-    insurance = serializers.CharField()
+    insurance = serializers.CharField(required=False)
     from_when = serializers.DateTimeField()
     to_when = serializers.DateTimeField()
 
