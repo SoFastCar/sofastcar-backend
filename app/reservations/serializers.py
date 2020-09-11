@@ -152,8 +152,9 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
         paid_credit = instance.reservation_credit()
 
         car = Car.objects.get(pk=validated_data['car_id'])
-        if car.zone.id != self.context.get('carzone_id'):
-            raise ValueError('해당 carzone의 car 인스턴스가 아닙니다.')
+
+        if car not in self.context.get('cars'):
+            raise ValueError('해당 carzone에서 이용가능한 car id가 아닙니다.')
 
         instance.car = car
         instance.save()

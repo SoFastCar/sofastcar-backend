@@ -24,7 +24,7 @@ class Reservation(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='reservations')
     car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='reservations')
     payment = models.OneToOneField(Payment, null=True, blank=True, on_delete=models.CASCADE, related_name='reservation')
-    insurance = models.CharField(choices=INSURANCES, blank=False, max_length=40)
+    insurance = models.CharField(choices=INSURANCES, blank=False, default='none', max_length=40)
     from_when = models.DateTimeField()
     to_when = models.DateTimeField()
     rental_date = models.DateTimeField(auto_now=True)  # update마다 자동 갱신

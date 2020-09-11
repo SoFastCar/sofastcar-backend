@@ -88,8 +88,21 @@ class ReservationCarUpdateViews(generics.UpdateAPIView):
             raise ValueError('해당하는 reservation 인스턴스가 존재하지 않습니다.')
 
     def get_serializer_context(self):
+        carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
+        reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
+
+        cars = carzone.cars.exclude(reservations=reservation).exclude(reservations__is_finished=True).exclude(
+            reservations__from_when__lte=reservation.to_when,
+            reservations__to_when__gte=reservation.to_when
+        ).exclude(
+            reservations__from_when__lte=reservation.from_when,
+            reservations__to_when__gte=reservation.from_when
+        ).exclude(
+            reservations__from_when__gte=reservation.from_when,
+            reservations__to_when__lte=reservation.to_when
+        )
         return {
-            'carzone_id': self.kwargs['carzone_id']
+            'cars': cars
         }
 
 
