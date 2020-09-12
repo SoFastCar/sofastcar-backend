@@ -1,6 +1,7 @@
 .idea/*
 .static/*
 .env
+deploy.py
 
 
 
