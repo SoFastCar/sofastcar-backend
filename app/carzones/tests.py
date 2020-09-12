@@ -51,7 +51,7 @@ class CarZoneTestCase(APITestCase):
 
     def test_should_list_CarZones_from_search_address(self):
         """
-        Request : GET - /carzones/?keyword=foo
+        Request : GET - /carzones?keyword=foo
         """
         CarZone.objects.create(name='zone1', address='서울 광진구 자양동')
         CarZone.objects.create(name='zone2', address='서울 성동구 성수동1가')
@@ -63,7 +63,7 @@ class CarZoneTestCase(APITestCase):
 
     def test_should_list_CarZones_from_search_name(self):
         """
-        Request : GET - /carzones/?keyword=name
+        Request : GET - /carzones?keyword=name
         """
         CarZone.objects.create(name='zone1', address='서울 광진구 자양동')
         CarZone.objects.create(name='zone2', address='서울 성동구 성수동1가')
