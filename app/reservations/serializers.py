@@ -86,14 +86,18 @@ class ReservationInsuranceUpdateSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         paid_credit = instance.reservation_credit()
+        existing_insurance = instance.insurance
         instance.insurance = validated_data['insurance']
         instance.save()
 
         if instance.reservation_credit() > paid_credit:
             if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+                instance.insurance = existing_insurance
+                instance.save()
                 raise ShortCreditException
             else:
                 instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+
         elif instance.reservation_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
         instance.member.profile.save()
@@ -109,6 +113,8 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         paid_credit = instance.reservation_credit()
+        existing_from_when = instance.from_when
+        existing_to_when = instance.to_when
         reserved_times = instance.car.reservations.exclude(pk=instance.pk).filter(is_finished=False).values(
             'from_when', 'to_when'
         )
@@ -136,6 +142,9 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.reservation_credit() > paid_credit:
             if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+                instance.from_when = existing_from_when
+                instance.to_when = existing_to_when
+                instance.save()
                 raise TooLessOrTooMuchTimeException
             else:
                 instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
@@ -154,6 +163,7 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         paid_credit = instance.reservation_credit()
+        existing_car = instance.car
 
         car = Car.objects.get(pk=validated_data['car_id'])
 
@@ -166,9 +176,12 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.reservation_credit() > paid_credit:
             if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+                instance.car = existing_car
+                instance.save()
                 raise ShortCreditException
             else:
                 instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+
         elif instance.reservation_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
 
