@@ -15,17 +15,10 @@ description = "The AWS SDK for Python"
 name = "boto3"
 optional = false
 python-versions = "*"
-<<<<<<< HEAD
-version = "1.14.58"
+version = "1.14.60"
 
 [package.dependencies]
-botocore = ">=1.17.58,<1.18.0"
-=======
-version = "1.14.59"
-
-[package.dependencies]
-botocore = ">=1.17.59,<1.18.0"
->>>>>>> 8749419d805fb5e815ab914958c53b4acd523d36
+botocore = ">=1.17.60,<1.18.0"
 jmespath = ">=0.7.1,<1.0.0"
 s3transfer = ">=0.3.0,<0.4.0"
 
@@ -35,17 +28,16 @@ description = "Low-level, data-driven core of boto 3."
 name = "botocore"
 optional = false
 python-versions = "*"
-<<<<<<< HEAD
-version = "1.17.58"
-=======
-version = "1.17.59"
->>>>>>> 8749419d805fb5e815ab914958c53b4acd523d36
+version = "1.17.60"
 
 [package.dependencies]
 docutils = ">=0.10,<0.16"
 jmespath = ">=0.7.1,<1.0.0"
 python-dateutil = ">=2.1,<3.0.0"
-urllib3 = ">=1.20,<1.26"
+
+[package.dependencies.urllib3]
+python = "<3.4.0 || >=3.5.0"
+version = ">=1.20,<1.26"
 
 [[package]]
 category = "main"
@@ -117,11 +109,7 @@ Django = ">=2.0"
 diff-match-patch = "*"
 
 [package.dependencies.tablib]
-<<<<<<< HEAD
-extras = ["xls", "html", "ods", "xlsx", "yaml"]
-=======
-extras = ["xlsx", "xls", "yaml", "ods", "html"]
->>>>>>> 8749419d805fb5e815ab914958c53b4acd523d36
+extras = ["yaml", "xlsx", "html", "xls", "ods"]
 version = ">=0.14.0"
 
 [[package]]
@@ -532,10 +520,7 @@ version = "0.12.0"
 
 [metadata]
 content-hash = "acef6f35b6aecec74acdd1764ea3e6ccc32c5e3582bb0cc749126fa4ee3d5285"
-<<<<<<< HEAD
 lock-version = "1.0"
-=======
->>>>>>> 8749419d805fb5e815ab914958c53b4acd523d36
 python-versions = "^3.7"
 
 [metadata.files]
@@ -544,20 +529,12 @@ asgiref = [
     {file = "asgiref-3.2.10.tar.gz", hash = "sha256:7e51911ee147dd685c3c8b805c0ad0cb58d360987b56953878f8c06d2d1c6f1a"},
 ]
 boto3 = [
-<<<<<<< HEAD
-    {file = "boto3-1.14.58-py2.py3-none-any.whl", hash = "sha256:cf186e0bcf3f0ecdc99cb4f4b579c39a30779ebaf050a3d74b2b4d2dd6b4abcf"},
-    {file = "boto3-1.14.58.tar.gz", hash = "sha256:89939e68c6200154c326dfe791c6492ea8f78ba966de5e57308bc48847a16a91"},
+    {file = "boto3-1.14.60-py2.py3-none-any.whl", hash = "sha256:79e95f428c485ea817969a78e77a311d2ec4d82e0955639d6126189c990ddad3"},
+    {file = "boto3-1.14.60.tar.gz", hash = "sha256:d8ca27ee13deeb1a9e79f2fe5f923effa60947ed49bbdfbc2a9f5790aef64217"},
 ]
 botocore = [
-    {file = "botocore-1.17.58.tar.gz", hash = "sha256:37cc3f1013c00dc0f061582198d6b785dadf147bd99307d41c5c0e47debca65c"},
-=======
-    {file = "boto3-1.14.59-py2.py3-none-any.whl", hash = "sha256:b596a80181fecd775ccc009286400f4d785136f250967895cb34beeeef65eb1f"},
-    {file = "boto3-1.14.59.tar.gz", hash = "sha256:20edd03ae4c4e141b0d8a9a9afc773af4345d54b68202b6aa502956b57b18b3f"},
-]
-botocore = [
-    {file = "botocore-1.17.59-py2.py3-none-any.whl", hash = "sha256:9736ff0c2a27e800864953c812be2f41fb9a6247350db4f052ef5e5b200a1ac4"},
-    {file = "botocore-1.17.59.tar.gz", hash = "sha256:47aa4683597b5b20bbaeee31f583d9ad701a6dd51ed56e1b61708a2057bbb1ae"},
->>>>>>> 8749419d805fb5e815ab914958c53b4acd523d36
+    {file = "botocore-1.17.60-py2.py3-none-any.whl", hash = "sha256:e55a4fc652537f5ccb2362133f3928ebeafb04ee9fe15ea11c2df80ba4ef8a12"},
+    {file = "botocore-1.17.60.tar.gz", hash = "sha256:193f193a66ac79106725e14dd73e28ed36bcec99b37156538a2202d061056a58"},
 ]
 certifi = [
     {file = "certifi-2020.6.20-py2.py3-none-any.whl", hash = "sha256:8fc0819f1f30ba15bdb34cceffb9ef04d99f420f68eb75d901e9560b8749fc41"},
