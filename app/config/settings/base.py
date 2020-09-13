@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'cars',
     'prices',
     'reservations.apps.ReservationsConfig',
+    'events',
 
     'import_export',
     'storages',

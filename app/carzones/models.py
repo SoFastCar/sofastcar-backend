@@ -29,6 +29,7 @@ class CarZone(models.Model):
     latitude = models.FloatField(default=0.0)
     longitude = models.FloatField(default=0.0)
 
+    image = models.ImageField(null=True, upload_to='CarZoneImages/%Y/%m/%d')
     sub_info = models.CharField(max_length=100, default='')
     detail_info = models.CharField(max_length=100, default='')
     type = models.CharField(max_length=10, choices=ChoiceZoneType.choices,

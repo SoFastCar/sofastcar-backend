@@ -1,8 +1,9 @@
 import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
-from rest_framework import generics
+from rest_framework import generics, mixins
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import GenericViewSet
 
 from cars.models import Car
 from carzones.models import CarZone
@@ -13,7 +14,8 @@ from reservations.exceptions import (
 from reservations.models import Reservation
 from reservations.serializers import (
     ReservationCreateSerializer, ReservationInsuranceUpdateSerializer, ReservationTimeUpdateSerializer,
-    CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarsSerializer, ReservationCarUpdateSerializer
+    CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarsSerializer, ReservationCarUpdateSerializer,
+    ReservationSerializer
 )
 
 
@@ -148,3 +150,22 @@ class CarzoneAvailableCarsViews(generics.RetrieveAPIView):
             'to_when': self.request.data['to_when'],
             'from_when': self.request.data['from_when']
         }
+
+
+class ReservationViewSet(mixins.ListModelMixin,
+                         GenericViewSet):
+    queryset = Reservation.objects.all()
+    serializer_class = ReservationSerializer
+    permission_classes = [IsAuthenticated, ]
+
+    def filter_queryset(self, queryset):
+        # 요청한 유저의 예약건만 필터링
+        if self.action == 'list':
+            queryset = queryset.filter(member=self.request.user)
+        return super().filter_queryset(queryset)
+
+
+
+
+
+

@@ -24,30 +24,29 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
             queryset = CarZone.objects.filter(Q(address__icontains=keyword) | Q(name__icontains=keyword))
         return queryset
 
+    @action(detail=False)
+    def list_by_distance(self, request, *args, **kwargs):
+        lat_per_km = 1 / 109.958489129649955
+        lon_per_km = 1 / 88.74
 
-@action(detail=False)
-def list_by_distance(self, request, *args, **kwargs):
-    lat_per_km = 1 / 109.958489129649955
-    lon_per_km = 1 / 88.74
+        try:
+            std_lat = float(request.query_params.get('lat'))
+            std_lon = float(request.query_params.get('lon'))
+            distance = float(request.query_params.get('distance'))
+        except Exception as e:
+            return Response('lat=float, lon=float, distance=float are required',
+                            status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        std_lat = float(request.query_params.get('lat'))
-        std_lon = float(request.query_params.get('lon'))
-        distance = float(request.query_params.get('distance'))
-    except Exception as e:
-        return Response('lat=float, lon=float, distance=float are required',
-                        status=status.HTTP_400_BAD_REQUEST)
+        boundary = {
+            'max_lat': std_lat + lat_per_km * distance,
+            'min_lat': std_lat - lat_per_km * distance,
+            'max_lon': std_lon + lon_per_km * distance,
+            'min_lon': std_lon - lon_per_km * distance,
+        }
+        zones = CarZone.objects.filter(latitude__gte=boundary['min_lat'],
+                                       latitude__lte=boundary['max_lat'],
+                                       longitude__gte=boundary['min_lon'],
+                                       longitude__lte=boundary['max_lon'], )
 
-    boundary = {
-        "max_lat": std_lat + lat_per_km * distance,
-        "min_lat": std_lat - lat_per_km * distance,
-        "max_lon": std_lon + lon_per_km * distance,
-        "min_lon": std_lon - lon_per_km * distance,
-    }
-    zones = CarZone.objects.filter(latitude__gte=boundary['min_lat'],
-                                   latitude__lte=boundary['max_lat'],
-                                   longitude__gte=boundary['min_lon'],
-                                   longitude__lte=boundary['max_lon'], )
-
-    serializer = self.get_serializer(zones, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(zones, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
