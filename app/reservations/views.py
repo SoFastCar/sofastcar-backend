@@ -8,7 +8,7 @@ from cars.models import Car
 from carzones.models import CarZone
 from reservations.exceptions import (
     ReservationDoesNotExistException, CarZoneDoesNotExistException, CarDoesNotExistException,
-    TooLessOrTooMuchTimeException
+    TooLessOrTooMuchTimeException, BeforeTheCurrentTimeException
 )
 from reservations.models import Reservation
 from reservations.serializers import (
@@ -137,6 +137,9 @@ class CarzoneAvailableCarsViews(generics.RetrieveAPIView):
 
             if not (30 * 60 <= (to_when - from_when).total_seconds() <= 30 * 60 * 24 * 60):
                 raise TooLessOrTooMuchTimeException
+
+            if from_when <= datetime.datetime.now():
+                raise BeforeTheCurrentTimeException
 
             carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
             return carzone

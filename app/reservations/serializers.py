@@ -5,8 +5,8 @@ from rest_framework import serializers
 
 from cars.models import Car
 from reservations.exceptions import (
-    NotAvailableCarException, ShortCreditException, TooLessOrTooMuchTimeException, NotAvailableTimeException,
-    CarDoesNotExistException
+    NotAvailableCarException, ShortCreditException, TooLessOrTooMuchTimeException, AlreadyReservedTimeException,
+    CarDoesNotExistException, BeforeTheCurrentTimeException
 )
 from reservations.models import Reservation
 
@@ -49,6 +49,9 @@ class ReservationCreateSerializer(serializers.Serializer):
                     validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
                 raise TooLessOrTooMuchTimeException
 
+            if validated_data['from_when'] <= datetime.datetime.now():
+                raise BeforeTheCurrentTimeException
+
             reserved_times = car.reservations.filter(is_finished=False).values(
                 'from_when', 'to_when'
             )
@@ -62,7 +65,7 @@ class ReservationCreateSerializer(serializers.Serializer):
                             validated_data['from_when'] >= time['from_when'] and validated_data['to_when'] <= time[
                         'to_when']
                     ):
-                        raise NotAvailableTimeException
+                        raise AlreadyReservedTimeException
 
             reservation = Reservation.objects.create(car=car, **validated_data)
 
@@ -123,6 +126,9 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
                 validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
             raise TooLessOrTooMuchTimeException
 
+        if validated_data['from_when'] <= datetime.datetime.now():
+            raise BeforeTheCurrentTimeException
+
         if reserved_times:
             for time in reserved_times:
                 if (
@@ -133,7 +139,7 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
                         validated_data['from_when'] >= time['from_when'] and validated_data['to_when'] <= time[
                     'to_when']
                 ):
-                    raise NotAvailableTimeException
+                    raise AlreadyReservedTimeException
 
         instance.from_when = validated_data['from_when']
         instance.to_when = validated_data['to_when']
@@ -145,7 +151,7 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
                 instance.from_when = existing_from_when
                 instance.to_when = existing_to_when
                 instance.save()
-                raise TooLessOrTooMuchTimeException
+                raise ShortCreditException
             else:
                 instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
         elif instance.reservation_credit() < paid_credit:
