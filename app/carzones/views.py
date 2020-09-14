@@ -25,7 +25,7 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
         return queryset
 
     @action(detail=False)
-    def list_by_distance(self, request, *args, **kwargs):
+    def distance(self, request, *args, **kwargs):
         lat_per_km = 1 / 109.958489129649955
         lon_per_km = 1 / 88.74
 
