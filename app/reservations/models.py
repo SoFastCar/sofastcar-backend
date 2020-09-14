@@ -34,18 +34,20 @@ class Reservation(models.Model):
         time_minutes = (self.to_when - self.from_when).total_seconds() / 60
         return time_minutes
 
-    def reservation_credit(self):
+    def insurance_credit(self):
         if self.insurance == 'special':
-            insurance = 6120
+            insurance = int(round(6120 * self.time() / 30, -1))
         elif self.insurance == 'standard':
-            insurance = 4370
+            insurance = int(round(4370 * self.time() / 30, -1))
         elif self.insurance == 'light':
-            insurance = 3510
+            insurance = int(round(3510 * self.time() / 30, -1))
         else:
             insurance = 0
+        return insurance
 
-        # 기본요금 x 시간(분) / 30 값 반올림 + 보험료
-        return int(round(self.car.carprice.standard_price * self.time() / 30, -2) + insurance)
+    # (기본요금 x 시간(분) / 30 값 반올림) + (보험료)
+    def reservation_credit(self):
+        return int(round(self.car.carprice.standard_price * self.time() / 30, -2) + self.insurance_credit())
 
 
 # 결제 인스턴스 생성시 예매 인스턴스에서 is_finished True로 update

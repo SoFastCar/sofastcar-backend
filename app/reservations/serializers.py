@@ -1,6 +1,7 @@
 import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 from rest_framework import serializers
 
 from cars.models import Car
@@ -49,7 +50,7 @@ class ReservationCreateSerializer(serializers.Serializer):
                     validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
                 raise TooLessOrTooMuchTimeException
 
-            if validated_data['from_when'] <= datetime.datetime.now():
+            if validated_data['from_when'] <= timezone.now():
                 raise BeforeTheCurrentTimeException
 
             reserved_times = car.reservations.filter(is_finished=False).values(
@@ -126,7 +127,7 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
                 validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
             raise TooLessOrTooMuchTimeException
 
-        if validated_data['from_when'] <= datetime.datetime.now():
+        if validated_data['from_when'] <= timezone.now():
             raise BeforeTheCurrentTimeException
 
         if reserved_times:
@@ -235,6 +236,7 @@ class CarzoneAvailableCarsSerializer(serializers.Serializer):
     # image = serializers.ImageField()
     from_when = serializers.SerializerMethodField('get_from_when')
     to_when = serializers.SerializerMethodField('get_to_when')
+    insurances = serializers.SerializerMethodField('get_insurances')
     cars = serializers.SerializerMethodField('get_cars')
 
     def get_from_when(self, obj):
@@ -242,6 +244,17 @@ class CarzoneAvailableCarsSerializer(serializers.Serializer):
 
     def get_to_when(self, obj):
         return self.context.get('to_when')
+
+    def get_insurances(self, obj):
+        to_when = datetime.datetime.strptime(self.context.get('to_when'), '%Y-%m-%dT%H:%M:%S.%f')
+        from_when = datetime.datetime.strptime(self.context.get('from_when'), '%Y-%m-%dT%H:%M:%S.%f')
+        time_minutes = (to_when - from_when).total_seconds() / 60
+
+        return {
+            'special': int(round(6120 * time_minutes / 30, -1)),
+            'standard': int(round(4370 * time_minutes / 30, -1)),
+            'light': int(round(3510 * time_minutes / 30, -1)),
+        }
 
     def get_cars(self, obj):
         cars = obj.cars.exclude(reservations__is_finished=True).exclude(
