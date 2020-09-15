@@ -12,6 +12,7 @@ class Car(models.Model):
         RNAULTSAMSUNG = '르노삼성자동차', _('르노삼성자동차')
         BENZ = '벤츠', _('벤츠')
         PORSCHE = '포르쉐', _('포르쉐')
+        CHEVROLET = '쉐보레', _('쉐보레')
 
     class ChoiceFuelType(models.TextChoices):
         DIESEL = '경유', _('경유')
@@ -36,7 +37,7 @@ class Car(models.Model):
     number = models.CharField(max_length=20, unique=True, help_text='차 번호판')
     name = models.CharField(max_length=30)
     zone = models.ForeignKey('carzones.CarZone', related_name='cars', on_delete=models.CASCADE)
-    image = models.ImageField(null=True)
+    image = models.ImageField(null=True, upload_to='CarImages/')
     manufacturer = models.CharField(max_length=20, choices=ChoiceManufacturer.choices)
     fuel_type = models.CharField(max_length=20, choices=ChoiceFuelType.choices,
                                  default=ChoiceFuelType.GASOLINE, help_text='연료')
@@ -52,7 +53,7 @@ class Car(models.Model):
 
 
 class PhotoBeforeUse(models.Model):
-    # 예약 완료 건 FK 추가 필요
+    reservation = models.ForeignKey('reservations.Reservation', related_name='ready_photos', on_delete=models.CASCADE)
     member = models.ForeignKey('members.Member', related_name='image_owners', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='ImagesBeforeUse/%Y/%m/%d')
+    image = models.ImageField(null=True, upload_to=f'ImagesBeforeUse/%Y/%m/%d/{reservation}/')
     time_stamp = models.DateTimeField(auto_now_add=True)
