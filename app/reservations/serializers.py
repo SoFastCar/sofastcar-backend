@@ -10,12 +10,15 @@ from reservations.exceptions import (
     CarDoesNotExistException, BeforeTheCurrentTimeException
 )
 from reservations.models import Reservation
+from reservations.utils import insurance_price, car_rental_price
 
 
 class ReservationSerializer(serializers.ModelSerializer):
     reservation_id = serializers.IntegerField(source='id')
     carzone = serializers.IntegerField(source='car.zone.id')
-    paid_credit = serializers.SerializerMethodField('get_paid_credit')
+    rental_credit = serializers.SerializerMethodField('get_rental_credit')
+    insurance_credit = serializers.SerializerMethodField('get_insurance_credit')
+    total_credit = serializers.SerializerMethodField('get_total_credit')
 
     class Meta:
         model = Reservation
@@ -24,16 +27,23 @@ class ReservationSerializer(serializers.ModelSerializer):
             'member',
             'car',
             'carzone',
-            'insurance',
+            'rental_credit',
+            'insurance_credit',
+            'total_credit',
             'from_when',
             'to_when',
             'rental_date',
             'is_finished',
-            'paid_credit',
         )
 
-    def get_paid_credit(self, obj):
-        return obj.reservation_credit()
+    def get_rental_credit(self, reservation):
+        return reservation.rental_credit()
+
+    def get_insurance_credit(self, reservation):
+        return reservation.insurance_credit()
+
+    def get_total_credit(self, reservation):
+        return reservation.total_credit()
 
 
 class ReservationCreateSerializer(serializers.Serializer):
@@ -70,12 +80,12 @@ class ReservationCreateSerializer(serializers.Serializer):
 
             reservation = Reservation.objects.create(car=car, **validated_data)
 
-            if reservation.member.profile.credit_point < reservation.reservation_credit():
+            if reservation.member.profile.credit_point < reservation.total_credit():
                 reservation.delete()
                 raise ShortCreditException
             else:
                 # 해당 사용자의 크레딧에서 요금 차감
-                reservation.member.profile.credit_point -= reservation.reservation_credit()
+                reservation.member.profile.credit_point -= reservation.total_credit()
                 reservation.member.profile.save()
                 return reservation
         except ObjectDoesNotExist:
@@ -89,21 +99,21 @@ class ReservationInsuranceUpdateSerializer(serializers.Serializer):
     insurance = serializers.CharField()
 
     def update(self, instance, validated_data):
-        paid_credit = instance.reservation_credit()
+        paid_credit = instance.total_credit()
         existing_insurance = instance.insurance
         instance.insurance = validated_data['insurance']
         instance.save()
 
-        if instance.reservation_credit() > paid_credit:
-            if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+        if instance.total_credit() > paid_credit:
+            if instance.member.profile.credit_point < (instance.total_credit() - paid_credit):
                 instance.insurance = existing_insurance
                 instance.save()
                 raise ShortCreditException
             else:
-                instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+                instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
 
-        elif instance.reservation_credit() < paid_credit:
-            instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
+        elif instance.total_credit() < paid_credit:
+            instance.member.profile.credit_point += (paid_credit - instance.total_credit())
         instance.member.profile.save()
         return instance
 
@@ -116,7 +126,7 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
     to_when = serializers.DateTimeField()
 
     def update(self, instance, validated_data):
-        paid_credit = instance.reservation_credit()
+        paid_credit = instance.total_credit()
         existing_from_when = instance.from_when
         existing_to_when = instance.to_when
         reserved_times = instance.car.reservations.exclude(pk=instance.pk).filter(is_finished=False).values(
@@ -147,16 +157,16 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
         instance.save()
 
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
-        if instance.reservation_credit() > paid_credit:
-            if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+        if instance.total_credit() > paid_credit:
+            if instance.member.profile.credit_point < (instance.total_credit() - paid_credit):
                 instance.from_when = existing_from_when
                 instance.to_when = existing_to_when
                 instance.save()
                 raise ShortCreditException
             else:
-                instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
-        elif instance.reservation_credit() < paid_credit:
-            instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
+                instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
+        elif instance.total_credit() < paid_credit:
+            instance.member.profile.credit_point += (paid_credit - instance.total_credit())
 
         instance.member.profile.save()
         return instance
@@ -169,7 +179,7 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
     car_id = serializers.IntegerField()
 
     def update(self, instance, validated_data):
-        paid_credit = instance.reservation_credit()
+        paid_credit = instance.total_credit()
         existing_car = instance.car
 
         car = Car.objects.get(pk=validated_data['car_id'])
@@ -181,16 +191,16 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
         instance.save()
 
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
-        if instance.reservation_credit() > paid_credit:
-            if instance.member.profile.credit_point < (instance.reservation_credit() - paid_credit):
+        if instance.total_credit() > paid_credit:
+            if instance.member.profile.credit_point < (instance.total_credit() - paid_credit):
                 instance.car = existing_car
                 instance.save()
                 raise ShortCreditException
             else:
-                instance.member.profile.credit_point -= (instance.reservation_credit() - paid_credit)
+                instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
 
-        elif instance.reservation_credit() < paid_credit:
-            instance.member.profile.credit_point += (paid_credit - instance.reservation_credit())
+        elif instance.total_credit() < paid_credit:
+            instance.member.profile.credit_point += (paid_credit - instance.total_credit())
 
         instance.member.profile.save()
         return instance
@@ -220,15 +230,14 @@ class CarsSerializer(serializers.ModelSerializer):
             'seater',
         )
 
-    def get_price(self, obj):
+    def get_price(self, car):
         if type(self.context.get('to_when')) == str:
             to_when = datetime.datetime.strptime(self.context.get('to_when'), '%Y-%m-%dT%H:%M:%S.%f')
             from_when = datetime.datetime.strptime(self.context.get('from_when'), '%Y-%m-%dT%H:%M:%S.%f')
         else:
             to_when = self.context.get('to_when')
             from_when = self.context.get('from_when')
-        time = (to_when - from_when).total_seconds() / 60
-        return int(round(obj.carprice.standard_price * time / 30, -2))
+        return car_rental_price(car.carprice.standard_price, from_when, to_when)
 
 
 class CarzoneAvailableCarsSerializer(serializers.Serializer):
@@ -239,25 +248,24 @@ class CarzoneAvailableCarsSerializer(serializers.Serializer):
     insurances = serializers.SerializerMethodField('get_insurances')
     cars = serializers.SerializerMethodField('get_cars')
 
-    def get_from_when(self, obj):
+    def get_from_when(self, carzone):
         return self.context.get('from_when')
 
-    def get_to_when(self, obj):
+    def get_to_when(self, carzone):
         return self.context.get('to_when')
 
-    def get_insurances(self, obj):
+    def get_insurances(self, carzone):
         to_when = datetime.datetime.strptime(self.context.get('to_when'), '%Y-%m-%dT%H:%M:%S.%f')
         from_when = datetime.datetime.strptime(self.context.get('from_when'), '%Y-%m-%dT%H:%M:%S.%f')
-        time_minutes = (to_when - from_when).total_seconds() / 60
 
         return {
-            'special': int(round(6120 * time_minutes / 30, -1)),
-            'standard': int(round(4370 * time_minutes / 30, -1)),
-            'light': int(round(3510 * time_minutes / 30, -1)),
+            'special': insurance_price('special', from_when, to_when),
+            'standard': insurance_price('standard', from_when, to_when),
+            'light': insurance_price('light', from_when, to_when),
         }
 
-    def get_cars(self, obj):
-        cars = obj.cars.exclude(reservations__is_finished=True).exclude(
+    def get_cars(self, carzone):
+        cars = carzone.cars.exclude(reservations__is_finished=True).exclude(
             reservations__from_when__lte=self.context.get('to_when'),
             reservations__to_when__gte=self.context.get('to_when')
         ).exclude(
