@@ -8,10 +8,3 @@ class CarPrice(models.Model):
     min_price_per_km = models.PositiveIntegerField(default=0)
     mid_price_per_km = models.PositiveIntegerField(default=0)
     max_price_per_km = models.PositiveIntegerField(default=0)
-
-
-# 차종 상관없이 이용시간별로 보험료 계산
-class InsurancePrice(models.Model):
-    special = models.PositiveIntegerField(default=6120)
-    standard = models.PositiveIntegerField(default=4370)
-    light = models.PositiveIntegerField(default=3510)
