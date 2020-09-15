@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
 from cars.models import Car, PhotoBeforeUse
+from reservations.models import Reservation
 
 
 class CarSerializer(ModelSerializer):
@@ -39,32 +40,33 @@ class CarSerializer(ModelSerializer):
                             ]
 
 
-class SummaryCarSerializer(ModelSerializer):
-    # price 부분을 시간 계산된 값으로 바꿔야 함
-    price = serializers.IntegerField(source='car_prices.standard_price')
-
-    class Meta:
-        model = Car
-        fields = ['id', 'name', 'image', 'price', ]
-        read_only_fields = ['id', 'name', 'image', 'price', ]
-
-
 class PhotoBeforeUseSerializer(serializers.ModelSerializer):
     photos = serializers.ListField(child=serializers.ImageField(), write_only=True)
 
     class Meta:
         model = PhotoBeforeUse
-        fields = ['id', 'member', 'image', 'photos']
-        read_only_fields = ('id', 'member', 'image')
+        fields = ['id', 'member', 'reservation', 'image', 'photos']
+        read_only_fields = ['id', 'member', 'reservation', 'image']
+
+    def validate(self, attrs):
+        # 예약 존재 여부 확인
+        if Reservation.objects.filter(id=self.context['view'].kwargs['reservation_pk']).exists():
+            instance = Reservation.objects.get(id=self.context['view'].kwargs['reservation_pk'])
+            # 요청 유저가 예약한 유저인지 확인
+            if instance.member == self.context['request'].user:
+                return attrs
+            else:
+                raise serializers.ValidationError('Reservation member != request.user')
+        else:
+            raise serializers.ValidationError('Reservation does not exists')
 
     def create(self, validated_data):
-        # reservation = Reservation.objects.get(id=self.context['request'].data['reservation_id'])
         images_data = self.context['request'].FILES
         photo_bulk_list = []
 
         for image in images_data.getlist('photos'):
             photo = PhotoBeforeUse(
-                # reservation=reservation,
+                reservation=validated_data.get('reservation'),
                 image=image,
                 member=self.context['request'].user)
             photo_bulk_list.append(photo)

@@ -14,6 +14,7 @@ class CarZoneAdmin(ImportExportMixin, admin.ModelAdmin):
                     'region',
                     'latitude',
                     'longitude',
+                    'image',
                     'sub_info',
                     'detail_info',
                     'type',
