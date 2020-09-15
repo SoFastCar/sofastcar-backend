@@ -31,6 +31,7 @@ class CarTestCase(APITestCase):
         self.zones = baker.make('carzones.CarZone', _quantity=2)
         self.cars = baker.make('cars.Car', zone=self.zones[0],
                                image=self.test_image.name, _quantity=2)
+        self.reservations = baker.make('reservations.Reservation', member=self.user, _quantity=2)
         self.client.force_authenticate(user=self.user)
 
     def test_should_list_Cars(self):
@@ -80,16 +81,14 @@ class CarTestCase(APITestCase):
 
     def test_should_create_multi_photos(self):
         """
-        Request : POST - /photos
-        추후 /reservations/123/photos 로 바꿀 예정
+        Request : POST - /reservations/123/photos
         """
         expected_count = 2
         test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
         test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
 
-        data = {'photos': [test_image_1, test_image_2] }
-                # 'reservation_id': self.test_reservation.id 추가
+        data = {'photos': [test_image_1, test_image_2]}
 
-        response = self.client.post(f'/photos', data=data, format='multipart')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
         self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
