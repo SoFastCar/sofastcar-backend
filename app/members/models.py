@@ -19,7 +19,7 @@ class MemberManager(BaseUserManager):
         email = self.normalize_email(email)
         user = self.model(name=name, email=email, password=password, **extra_fields)
 
-        user.set_password()
+        user.set_password(password)
         user.save()
         return user
 
