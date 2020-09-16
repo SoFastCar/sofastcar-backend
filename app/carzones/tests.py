@@ -51,7 +51,7 @@ class CarZoneTestCase(APITestCase):
 
     def test_should_list_CarZones_from_search_address(self):
         """
-        Request : GET - /carzones/?keyword=foo
+        Request : GET - /carzones?keyword=foo
         """
         CarZone.objects.create(name='zone1', address='서울 광진구 자양동')
         CarZone.objects.create(name='zone2', address='서울 성동구 성수동1가')
@@ -63,7 +63,7 @@ class CarZoneTestCase(APITestCase):
 
     def test_should_list_CarZones_from_search_name(self):
         """
-        Request : GET - /carzones/?keyword=name
+        Request : GET - /carzones?keyword=name
         """
         CarZone.objects.create(name='zone1', address='서울 광진구 자양동')
         CarZone.objects.create(name='zone2', address='서울 성동구 성수동1가')
@@ -75,7 +75,7 @@ class CarZoneTestCase(APITestCase):
 
     def test_should_list_CarZones_filter_by_distance(self):
         """
-        Request : GET - /carzones/list_by_distance?lat=123.456&lon=123.456&distance=1
+        Request : GET - /carzones/distance?lat=123.456&lon=123.456&distance=1
         """
         CarZone.objects.create(name='zone1', address='서울 송파구 장지동',
                                latitude=37.469361, longitude=127.1259747)
@@ -83,7 +83,7 @@ class CarZoneTestCase(APITestCase):
                                latitude=37.540323, longitude=127.042847)
         CarZone.objects.create(name='zone3', address='서울 성동구 성수동1가',
                                latitude=37.5418042, longitude=127.0436044)
-        response = self.client.get(f'/carzones/list_by_distance?lat=37.54&lon=127.04&distance=1')
+        response = self.client.get(f'/carzones/distance?lat=37.54&lon=127.04&distance=1')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         for entry in response.data:
