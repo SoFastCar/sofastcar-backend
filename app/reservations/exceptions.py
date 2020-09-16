@@ -48,7 +48,13 @@ class ShortCreditException(APIException):
     default_code = 'ShortCredit'
 
 
-class NotAvailableTimeException(APIException):
+class AlreadyReservedTimeException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = '해당 이용시간대는 사용 불가능합니다.'
-    default_code = 'NotAvailableTime'
+    default_code = 'AlreadyReservedTime'
+
+
+class BeforeTheCurrentTimeException(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = '현재 시간 이후부터 예약 가능합니다.'
+    default_code = 'BeforeTheCurrentTime'

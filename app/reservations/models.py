@@ -4,6 +4,7 @@ from django.dispatch import receiver
 
 from cars.models import Car
 from members.models import Member
+from reservations.utils import insurance_price, car_rental_price
 
 
 class Payment(models.Model):
@@ -34,18 +35,16 @@ class Reservation(models.Model):
         time_minutes = (self.to_when - self.from_when).total_seconds() / 60
         return time_minutes
 
-    def reservation_credit(self):
-        if self.insurance == 'special':
-            insurance = 6120
-        elif self.insurance == 'standard':
-            insurance = 4370
-        elif self.insurance == 'light':
-            insurance = 3510
-        else:
-            insurance = 0
+    def insurance_credit(self):
+        insurance = insurance_price(self.insurance, self.from_when, self.to_when)
+        return insurance
 
-        # 기본요금 x 시간(분) / 30 값 반올림 + 보험료
-        return int(round(self.car.carprice.standard_price * self.time() / 30, -2) + insurance)
+    def rental_credit(self):
+        price = car_rental_price(self.car.carprice.standard_price, self.from_when, self.to_when)
+        return price
+
+    def total_credit(self):
+        return self.insurance_credit() + self.rental_credit()
 
 
 # 결제 인스턴스 생성시 예매 인스턴스에서 is_finished True로 update
