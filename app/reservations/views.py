@@ -1,15 +1,19 @@
 import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
-from rest_framework import generics, mixins
+
+from rest_framework.generics import CreateAPIView, UpdateAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
 from cars.models import Car
 from carzones.models import CarZone
 from reservations.exceptions import (
     ReservationDoesNotExistException, CarZoneDoesNotExistException, CarDoesNotExistException,
-    TooLessOrTooMuchTimeException
+    TooLessOrTooMuchTimeException, BeforeTheCurrentTimeException
 )
 from reservations.models import Reservation
 from reservations.serializers import (
@@ -17,9 +21,10 @@ from reservations.serializers import (
     CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarsSerializer, ReservationCarUpdateSerializer,
     ReservationSerializer
 )
+from reservations.utils import insurance_price
 
 
-class ReservationCreateViews(generics.CreateAPIView):
+class ReservationCreateViews(CreateAPIView):
     queryset = Reservation.objects.all()
     serializer_class = ReservationCreateSerializer
     permission_classes = (IsAuthenticated,)
@@ -28,7 +33,26 @@ class ReservationCreateViews(generics.CreateAPIView):
         serializer.save(member=self.request.user)
 
 
-class ReservationInsuranceUpdateViews(generics.UpdateAPIView):
+class ReservationInsurancePricesViews(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self, reservation_id):
+        try:
+            reservation = Reservation.objects.get(pk=reservation_id, member=self.request.user)
+            return reservation
+        except ObjectDoesNotExist:
+            raise ReservationDoesNotExistException
+
+    def get(self, request, reservation_id):
+        reservation = self.get_object(reservation_id)
+        return Response({
+            'special': insurance_price('special', reservation.from_when, reservation.to_when),
+            'standard': insurance_price('standard', reservation.from_when, reservation.to_when),
+            'light': insurance_price('light', reservation.from_when, reservation.to_when)
+        })
+
+
+class ReservationInsuranceUpdateViews(UpdateAPIView):
     serializer_class = ReservationInsuranceUpdateSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -40,7 +64,7 @@ class ReservationInsuranceUpdateViews(generics.UpdateAPIView):
             raise ReservationDoesNotExistException
 
 
-class ReservationTimeUpdateViews(generics.UpdateAPIView):
+class ReservationTimeUpdateViews(UpdateAPIView):
     serializer_class = ReservationTimeUpdateSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -52,7 +76,7 @@ class ReservationTimeUpdateViews(generics.UpdateAPIView):
             raise ReservationDoesNotExistException
 
 
-class ReservationCarzoneAvailableCarsViews(generics.ListAPIView):
+class ReservationCarzoneAvailableCarsViews(ListAPIView):
     serializer_class = CarsSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -85,7 +109,7 @@ class ReservationCarzoneAvailableCarsViews(generics.ListAPIView):
         }
 
 
-class ReservationCarUpdateViews(generics.UpdateAPIView):
+class ReservationCarUpdateViews(UpdateAPIView):
     serializer_class = ReservationCarUpdateSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -115,7 +139,7 @@ class ReservationCarUpdateViews(generics.UpdateAPIView):
         }
 
 
-class CarReservedTimesViews(generics.ListAPIView):
+class CarReservedTimesViews(ListAPIView):
     serializer_class = CarReservedTimesSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -128,7 +152,7 @@ class CarReservedTimesViews(generics.ListAPIView):
             raise CarDoesNotExistException
 
 
-class CarzoneAvailableCarsViews(generics.RetrieveAPIView):
+class CarzoneAvailableCarsViews(RetrieveAPIView):
     serializer_class = CarzoneAvailableCarsSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -139,6 +163,9 @@ class CarzoneAvailableCarsViews(generics.RetrieveAPIView):
 
             if not (30 * 60 <= (to_when - from_when).total_seconds() <= 30 * 60 * 24 * 60):
                 raise TooLessOrTooMuchTimeException
+
+            if from_when <= datetime.datetime.now():
+                raise BeforeTheCurrentTimeException
 
             carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
             return carzone
