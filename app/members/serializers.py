@@ -14,6 +14,7 @@ class MembersSerializer(ModelSerializer):
         model = Member
         fields = (
             'id',
+            'name',
             'email',
             'password',
         )
@@ -49,13 +50,15 @@ class ProfileSerializer(ModelSerializer):
     """
     프로필 Serializer
     """
+    name = serializers.CharField(source='member.name')
 
     class Meta:
         model = Profile
         fields = (
             'id',
             'image',
-            'birth',
+            'name',
+            'credit_point',
         )
 
 
@@ -74,7 +77,7 @@ class PhoneAuthSerializer(ModelSerializer):
 
         if attrs[-1:] in ['1', '2']:
             birth = date(int(f'19{attrs[0:2]}'), int(attrs[2:4]), int(attrs[4:6]))
-            year = (date.today() - birth).days / 365.25
+            year = (date.today() - birth).days / 365
 
             if year >= 23:
                 return attrs
@@ -83,7 +86,7 @@ class PhoneAuthSerializer(ModelSerializer):
 
         elif attrs[-1:] in ['3', '4']:
             birth = date(int(f'20{attrs[0:2]}'), int(attrs[2:4]), int(attrs[4:6]))
-            year = (date.today() - birth).days / 365.25
+            year = (date.today() - birth).days / 365
 
             if year >= 23:
                 return attrs

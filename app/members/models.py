@@ -2,9 +2,9 @@ import base64
 import hashlib
 import hmac
 import json
+import secrets
 import time
 import datetime
-from random import randint
 from django.utils import timezone
 
 import requests
@@ -15,27 +15,25 @@ from django.contrib.auth.models import (
 
 
 class MemberManager(BaseUserManager):
-    def _create_user(self, email, password):
+    def _create_user(self, name, email, password, **extra_fields):
         email = self.normalize_email(email)
-        user = self.model(email=email, password=password)
+        user = self.model(name=name, email=email, password=password, **extra_fields)
+
+        user.set_password()
         user.save()
         return user
 
-    def _create_superuser(self, email, password):
-        email = self.normalize_email(email)
-        user = self.model(email=email, password=password)
-        user.is_admin = True
-        user.save()
-        return user
+    def create_user(self, name, email, password, **extra_fields):
+        extra_fields.setdefault('is_admin', False)
+        return self._create_user(name, email, password, **extra_fields)
 
-    def create_user(self, email, password):
-        return self._create_user(email, password)
-
-    def create_superuser(self, email, password):
-        return self._create_superuser(email, password)
+    def create_superuser(self, name, email, password, **extra_fields):
+        extra_fields.setdefault('is_admin', True)
+        return self._create_user(name, email, password, **extra_fields)
 
 
 class Member(AbstractBaseUser):
+    name = models.CharField(max_length=10)
     email = models.EmailField(
         verbose_name='email address',
         max_length=255,
@@ -47,7 +45,7 @@ class Member(AbstractBaseUser):
     objects = MemberManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['name']
 
     def has_perm(self, perm, obj=None):
         """
@@ -72,14 +70,10 @@ class Member(AbstractBaseUser):
         return self.is_admin
 
     def save(self, *args, **kwargs):
-        self.set_password(self.password)
 
         if not self.id:
             super().save(*args, **kwargs)
-
-            Profile.objects.create(
-                member=self,
-            )
+            Profile.objects.create(member=self)
         else:
             super().save(*args, **kwargs)
 
@@ -88,10 +82,10 @@ class Profile(models.Model):
     member = models.OneToOneField('members.Member',
                                   related_name='profile',
                                   on_delete=models.CASCADE,
-                                  unique=True,
                                   )
+    name = models.CharField(max_length=10)
     image = models.ImageField(null=True)
-    credit_point = models.IntegerField(default=100000)
+    credit_point = models.IntegerField(default=100_000)
 
 
 class PhoneAuth(models.Model):
@@ -104,7 +98,7 @@ class PhoneAuth(models.Model):
     ttl = models.DateTimeField()
 
     def save(self, *args, **kwargs):
-        self.auth_number = randint(100000, 999999)
+        self.auth_number = secrets.choice(range(100000, 999999))
         self.ttl = timezone.now() + datetime.timedelta(minutes=5)
         super().save(*args, **kwargs)
 
