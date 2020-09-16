@@ -1,17 +1,17 @@
 import base64
+import datetime
 import hashlib
 import hmac
 import json
 import secrets
 import time
-import datetime
-from django.utils import timezone
 
 import requests
-from django.db import models
 from django.contrib.auth.models import (
     BaseUserManager, AbstractBaseUser
 )
+from django.db import models
+from django.utils import timezone
 
 
 class MemberManager(BaseUserManager):
@@ -70,6 +70,7 @@ class Member(AbstractBaseUser):
         return self.is_admin
 
     def save(self, *args, **kwargs):
+        self.set_password(self.password)
 
         if not self.id:
             super().save(*args, **kwargs)
