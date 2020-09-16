@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from cars.models import Car
+from carzones.models import CarZone
 from reservations.exceptions import (
     NotAvailableCarException, ShortCreditException, TooLessOrTooMuchTimeException, AlreadyReservedTimeException,
     CarDoesNotExistException, BeforeTheCurrentTimeException
@@ -13,9 +14,24 @@ from reservations.models import Reservation
 from reservations.utils import insurance_price, car_rental_price
 
 
+class CarZoneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CarZone
+        fields = (
+            'id',
+            'address',
+            'name',
+            'region',
+            'sub_info',
+            'detail_info',
+            'type',
+            'operating_time',
+        )
+
+
 class ReservationSerializer(serializers.ModelSerializer):
     reservation_id = serializers.IntegerField(source='id')
-    carzone = serializers.IntegerField(source='car.zone.id')
+    carzone = CarZoneSerializer(source='car.zone')
     rental_credit = serializers.SerializerMethodField('get_rental_credit')
     insurance_credit = serializers.SerializerMethodField('get_insurance_credit')
     total_credit = serializers.SerializerMethodField('get_total_credit')
