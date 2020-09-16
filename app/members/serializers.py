@@ -67,9 +67,12 @@ class PhoneAuthSerializer(ModelSerializer):
         model = PhoneAuth
         fields = (
             'id',
+            'auth_number',
             'phone_number',
             'registration_id',
         )
+
+        read_only_fields = ('auth_number',)
 
     def validate_registration_id(self, attrs):
         if not len(attrs) == 7:
@@ -101,7 +104,6 @@ class CheckAuthNumberSerializer(ModelSerializer):
         model = PhoneAuth
         fields = (
             'id',
-            'auth_number',
             'check_auth_number',
         )
 
