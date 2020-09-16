@@ -90,6 +90,7 @@ class Profile(models.Model):
                                   on_delete=models.CASCADE,
                                   unique=True,
                                   )
+    name = models.CharField(max_length=10)
     image = models.ImageField(null=True)
     credit_point = models.IntegerField(default=100000)
 
