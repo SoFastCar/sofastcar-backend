@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'prices',
     'reservations.apps.ReservationsConfig',
     'events',
+    'payment.apps.PaymentConfig',
 
     'import_export',
     'storages',

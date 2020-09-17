@@ -11,6 +11,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from cars.models import Car
 from carzones.models import CarZone
+from core.utils import insurance_price
 from reservations.exceptions import (
     ReservationDoesNotExistException, CarZoneDoesNotExistException, CarDoesNotExistException,
     TooLessOrTooMuchTimeException, BeforeTheCurrentTimeException
@@ -21,7 +22,6 @@ from reservations.serializers import (
     CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarsSerializer, ReservationCarUpdateSerializer,
     ReservationSerializer
 )
-from reservations.utils import insurance_price
 
 
 class ReservationCreateViews(CreateAPIView):
@@ -29,13 +29,13 @@ class ReservationCreateViews(CreateAPIView):
     serializer_class = ReservationCreateSerializer
     permission_classes = (IsAuthenticated,)
 
+    def perform_create(self, serializer):
+        serializer.save(member=self.request.user)
+
     def get_serializer_context(self):
         return {
             'member': self.request.user
         }
-
-    def perform_create(self, serializer):
-        serializer.save(member=self.request.user)
 
 
 class ReservationInsurancePricesViews(APIView):

@@ -6,9 +6,9 @@ from rest_framework import serializers
 
 from cars.models import Car
 from carzones.models import CarZone
+from core.utils import insurance_price, car_rental_price
 from reservations.exceptions import CarDoesNotExistException
 from reservations.models import Reservation
-from reservations.utils import insurance_price, car_rental_price
 
 
 class CarZoneSerializer(serializers.ModelSerializer):
