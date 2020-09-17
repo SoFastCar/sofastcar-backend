@@ -1,17 +1,9 @@
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 from cars.models import Car
+from core.utils import insurance_price, car_rental_price
 from members.models import Member
-from reservations.utils import insurance_price, car_rental_price
-
-
-class Payment(models.Model):
-    mileage = models.FloatField()
-
-    def payment_credit(self):
-        pass
+from payment.models import Payment
 
 
 class Reservation(models.Model):
@@ -44,11 +36,3 @@ class Reservation(models.Model):
 
     def total_credit(self):
         return self.insurance_credit() + self.rental_credit()
-
-
-# 결제 인스턴스 생성시 예매 인스턴스에서 is_finished True로 update
-@receiver(post_save, sender=Payment)
-def reservation_finished(instance, created, **kwargs):
-    if created:
-        instance.reservation.is_finished = True
-        instance.reservation.save()
