@@ -29,6 +29,11 @@ class ReservationCreateViews(CreateAPIView):
     serializer_class = ReservationCreateSerializer
     permission_classes = (IsAuthenticated,)
 
+    def get_serializer_context(self):
+        return {
+            'member': self.request.user
+        }
+
     def perform_create(self, serializer):
         serializer.save(member=self.request.user)
 
@@ -63,6 +68,11 @@ class ReservationInsuranceUpdateViews(UpdateAPIView):
         except ObjectDoesNotExist:
             raise ReservationDoesNotExistException
 
+    def get_serializer_context(self):
+        return {
+            'reservation': Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
+        }
+
 
 class ReservationTimeUpdateViews(UpdateAPIView):
     serializer_class = ReservationTimeUpdateSerializer
@@ -74,6 +84,11 @@ class ReservationTimeUpdateViews(UpdateAPIView):
             return reservation
         except ObjectDoesNotExist:
             raise ReservationDoesNotExistException
+
+    def get_serializer_context(self):
+        return {
+            'reservation': Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
+        }
 
 
 class ReservationCarzoneAvailableCarsViews(ListAPIView):
@@ -135,7 +150,8 @@ class ReservationCarUpdateViews(UpdateAPIView):
             reservations__to_when__lte=reservation.to_when
         )
         return {
-            'cars': cars
+            'cars': cars,
+            'reservation': reservation
         }
 
 
@@ -190,9 +206,3 @@ class ReservationViewSet(mixins.ListModelMixin,
         if self.action == 'list':
             queryset = queryset.filter(member=self.request.user)
         return super().filter_queryset(queryset)
-
-
-
-
-
-

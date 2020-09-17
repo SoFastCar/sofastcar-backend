@@ -1,3 +1,6 @@
+from reservations.exceptions import NotValidInsuranceException
+
+
 def insurance_price(insurance, from_when, to_when):
     time = (to_when - from_when).total_seconds() / 60
 
@@ -7,8 +10,10 @@ def insurance_price(insurance, from_when, to_when):
         insurance = int(round(4370 * time / 30, -1))
     elif insurance == 'light':
         insurance = int(round(3510 * time / 30, -1))
-    else:
+    elif insurance == 'none':
         insurance = 0
+    else:
+        raise NotValidInsuranceException
     return insurance
 
 
