@@ -2,10 +2,13 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
 from cars.models import Car, PhotoBeforeUse
+from prices.serializers import CarPriceSerializer
 from reservations.models import Reservation
 
 
 class CarSerializer(ModelSerializer):
+    car_prices = CarPriceSerializer(read_only=True, source='carprice')
+
     class Meta:
         model = Car
         fields = ['id',
@@ -21,7 +24,8 @@ class CarSerializer(ModelSerializer):
                   'is_event_model',
                   'manual_page',
                   'safety_option',
-                  'convenience_option'
+                  'convenience_option',
+                  'car_prices',
                   ]
         read_only_fields = ['id',
                             'number',
@@ -36,7 +40,8 @@ class CarSerializer(ModelSerializer):
                             'is_event_model',
                             'manual_page',
                             'safety_option',
-                            'convenience_option'
+                            'convenience_option',
+                            'car_prices',
                             ]
 
 

@@ -40,21 +40,16 @@ class MembersViewSet(ModelViewSet):
 
         return Response(status=status.HTTP_200_OK)
 
-    @action(methods=['get'], detail=False)
-    def profile(self, request, *args, **kwargs):
-        """
-        사용자 프로필
-        """
-        print('1')
-        data = Profile.objects.get(member=request.user)
-        print(data)
-        return Response(data, status=status.HTTP_200_OK)
-
 
 class ProfileViewSet(mixins.ListModelMixin,
                      GenericViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
+
+    def filter_queryset(self, queryset):
+        if self.action == 'list':
+            queryset = queryset.filter(member=self.request.user)
+        return super().filter_queryset(queryset)
 
 
 class PhoneAuthViewSet(ModelViewSet):

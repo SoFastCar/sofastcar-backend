@@ -31,10 +31,13 @@ class CarTestCase(APITestCase):
         self.zones = baker.make('carzones.CarZone', _quantity=2)
         self.cars = baker.make('cars.Car', zone=self.zones[0],
                                image=self.test_image.name, _quantity=2)
+        self.car_price_1 = baker.make('prices.CarPrice', car=self.cars[0])
+        self.car_price_2 = baker.make('prices.CarPrice', car=self.cars[1])
+        self.car_prices = [self.car_price_1, self.car_price_2]
         self.reservations = baker.make('reservations.Reservation', member=self.user, _quantity=2)
         self.client.force_authenticate(user=self.user)
 
-    def test_should_list_Cars(self):
+    def test_should_list_Cars_and_CarPrices(self):
         """
         Request : GET - /carzones/123/cars
         """
@@ -57,7 +60,16 @@ class CarTestCase(APITestCase):
             self.assertEqual(entry.safety_option, response_entry['safety_option'])
             self.assertEqual(entry.convenience_option, response_entry['convenience_option'])
 
-    def test_should_retrieve_Cars(self):
+        # Car_Prices 부분
+        for entry, response_entry in zip(self.car_prices, response.data['results']):
+            self.assertEqual(entry.id, response_entry['car_prices']['id'])
+            self.assertEqual(entry.car_id, response_entry['car_prices']['car'])
+            self.assertEqual(entry.standard_price, response_entry['car_prices']['standard_price'])
+            self.assertEqual(entry.min_price_per_km, response_entry['car_prices']['min_price_per_km'])
+            self.assertEqual(entry.mid_price_per_km, response_entry['car_prices']['mid_price_per_km'])
+            self.assertEqual(entry.max_price_per_km, response_entry['car_prices']['max_price_per_km'])
+
+    def test_should_retrieve_Cars_and_CarPrices(self):
         """
         Request : GET - /carzones/123/cars/456
         """
@@ -78,6 +90,12 @@ class CarTestCase(APITestCase):
         self.assertEqual(self.cars[0].manual_page, response.data['manual_page'])
         self.assertEqual(self.cars[0].safety_option, response.data['safety_option'])
         self.assertEqual(self.cars[0].convenience_option, response.data['convenience_option'])
+        self.assertEqual(self.car_price_1.id, response.data['car_prices']['id'])
+        self.assertEqual(self.car_price_1.car_id, response.data['car_prices']['car'])
+        self.assertEqual(self.car_price_1.standard_price, response.data['car_prices']['standard_price'])
+        self.assertEqual(self.car_price_1.min_price_per_km, response.data['car_prices']['min_price_per_km'])
+        self.assertEqual(self.car_price_1.mid_price_per_km, response.data['car_prices']['mid_price_per_km'])
+        self.assertEqual(self.car_price_1.max_price_per_km, response.data['car_prices']['max_price_per_km'])
 
     def test_should_create_multi_photos(self):
         """
