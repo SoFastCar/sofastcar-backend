@@ -13,19 +13,19 @@ def rest_exception_handler(exc, context):
 
 
 class ReservationDoesNotExistException(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
+    status_code = status.HTTP_404_NOT_FOUND
     default_detail = '해당하는 reservation 인스턴스가 존재하지 않습니다.'
     default_code = 'DoesNotExist'
 
 
 class CarZoneDoesNotExistException(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
+    status_code = status.HTTP_404_NOT_FOUND
     default_detail = '해당하는 carzone 인스턴스가 존재하지 않습니다.'
     default_code = 'DoesNotExist'
 
 
 class CarDoesNotExistException(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
+    status_code = status.HTTP_404_NOT_FOUND
     default_detail = '해당하는 car 인스턴스가 존재하지 않습니다.'
     default_code = 'DoesNotExist'
 
