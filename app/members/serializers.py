@@ -50,7 +50,7 @@ class ProfileSerializer(ModelSerializer):
     """
     프로필 Serializer
     """
-    name = serializers.CharField(source='member.name')
+    name = serializers.CharField(source='member.name', read_only=True)
 
     class Meta:
         model = Profile
