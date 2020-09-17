@@ -29,9 +29,6 @@ class CarZoneSerializer(serializers.ModelSerializer):
 class ReservationSerializer(serializers.ModelSerializer):
     reservation_id = serializers.IntegerField(source='id')
     carzone = CarZoneSerializer(source='car.zone')
-    rental_credit = serializers.SerializerMethodField('get_rental_credit')
-    insurance_credit = serializers.SerializerMethodField('get_insurance_credit')
-    total_credit = serializers.SerializerMethodField('get_total_credit')
 
     class Meta:
         model = Reservation
@@ -48,15 +45,6 @@ class ReservationSerializer(serializers.ModelSerializer):
             'rental_date',
             'is_finished',
         )
-
-    def get_rental_credit(self, reservation):
-        return reservation.rental_credit()
-
-    def get_insurance_credit(self, reservation):
-        return reservation.insurance_credit()
-
-    def get_total_credit(self, reservation):
-        return reservation.total_credit()
 
 
 class ReservationCreateSerializer(serializers.Serializer):
