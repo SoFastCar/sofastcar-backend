@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import status, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -6,7 +6,7 @@ from members.models import Member, Profile, PhoneAuth
 from core.permissions import IsOwner, IsAnonymous
 from members.serializers import MembersSerializer, ChangePasswordSerializer, ProfileSerializer, PhoneAuthSerializer, \
     CheckAuthNumberSerializer
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
 
 class MembersViewSet(ModelViewSet):
@@ -40,8 +40,19 @@ class MembersViewSet(ModelViewSet):
 
         return Response(status=status.HTTP_200_OK)
 
+    @action(methods=['get'], detail=False)
+    def profile(self, request, *args, **kwargs):
+        """
+        사용자 프로필
+        """
+        print('1')
+        data = Profile.objects.get(member=request.user)
+        print(data)
+        return Response(data, status=status.HTTP_200_OK)
 
-class ProfileViewSet(ModelViewSet):
+
+class ProfileViewSet(mixins.ListModelMixin,
+                     GenericViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
 
