@@ -6,10 +6,7 @@ from rest_framework import serializers
 
 from cars.models import Car
 from carzones.models import CarZone
-from reservations.exceptions import (
-    NotAvailableCarException, ShortCreditException, TooLessOrTooMuchTimeException, AlreadyReservedTimeException,
-    CarDoesNotExistException, BeforeTheCurrentTimeException
-)
+from reservations.exceptions import CarDoesNotExistException
 from reservations.models import Reservation
 from reservations.utils import insurance_price, car_rental_price
 
@@ -68,42 +65,57 @@ class ReservationCreateSerializer(serializers.Serializer):
     from_when = serializers.DateTimeField()
     to_when = serializers.DateTimeField()
 
+    # 예약시간대 현재 시간 이후인지 확인
+    def validate_from_when(self, from_when):
+        if from_when <= timezone.now():
+            raise serializers.ValidationError('현재 시간 이후부터 예약 가능합니다.')
+        return from_when
+
+    def validate(self, attrs):
+        from_when = attrs['from_when']
+        to_when = attrs['to_when']
+        insurance = attrs['insurance']
+        car = Car.objects.get(pk=attrs['car_id'])
+        member = self.context.get('member')
+
+        # 이용시간대 30분 이상 30일 이하 확인
+        MIN_DURATION = 30 * 60
+        MAX_DURATION = 30 * 60 * 24 * 60
+
+        if not MIN_DURATION <= (to_when - from_when).total_seconds() <= MAX_DURATION:
+            raise serializers.ValidationError('최소 30분부터 최대 30일까지 설정 가능합니다.')
+
+        # 해당 car_id의 예약가능한 시간대 확인
+        reservations = car.reservations.filter(is_finished=False)
+
+        if (
+                reservations.filter(from_when__lte=to_when, to_when__gte=to_when)
+        ) or (
+                reservations.filter(from_when__lte=from_when, to_when__gte=from_when)
+        ) or (
+                reservations.filter(from_when__gte=from_when, to_when__lte=to_when)
+        ):
+            raise serializers.ValidationError('해당 이용시간대는 사용 불가능합니다.')
+
+        # 해당 member의 크레딧 확인
+        insurance_credit = insurance_price(insurance, from_when, to_when)
+        rental_credit = car_rental_price(car.carprice.standard_price, from_when, to_when)
+        total_credit = insurance_credit + rental_credit
+
+        if member.profile.credit_point < total_credit:
+            raise serializers.ValidationError('크레딧이 부족합니다.')
+        return attrs
+
     def create(self, validated_data):
         try:
             car = Car.objects.get(pk=validated_data.get('car_id'))
-
-            if not (30 * 60 <= (
-                    validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
-                raise TooLessOrTooMuchTimeException
-
-            if validated_data['from_when'] <= timezone.now():
-                raise BeforeTheCurrentTimeException
-
-            reserved_times = car.reservations.filter(is_finished=False).values(
-                'from_when', 'to_when'
-            )
-            if reserved_times:
-                for time in reserved_times:
-                    if (
-                            validated_data['from_when'] <= time['to_when'] <= validated_data['to_when']
-                    ) or (
-                            validated_data['from_when'] <= time['from_when'] <= validated_data['to_when']
-                    ) or (
-                            validated_data['from_when'] >= time['from_when'] and validated_data['to_when'] <= time[
-                        'to_when']
-                    ):
-                        raise AlreadyReservedTimeException
-
             reservation = Reservation.objects.create(car=car, **validated_data)
 
-            if reservation.member.profile.credit_point < reservation.total_credit():
-                reservation.delete()
-                raise ShortCreditException
-            else:
-                # 해당 사용자의 크레딧에서 요금 차감
-                reservation.member.profile.credit_point -= reservation.total_credit()
-                reservation.member.profile.save()
-                return reservation
+            # 해당 사용자의 크레딧에서 요금 차감
+            reservation.member.profile.credit_point -= reservation.total_credit()
+            reservation.member.profile.save()
+            return reservation
+
         except ObjectDoesNotExist:
             raise CarDoesNotExistException
 
@@ -114,20 +126,28 @@ class ReservationCreateSerializer(serializers.Serializer):
 class ReservationInsuranceUpdateSerializer(serializers.Serializer):
     insurance = serializers.CharField()
 
+    # 해당 member의 크레딧 확인
+    def validate(self, attrs):
+        insurance = attrs['insurance']
+        reservation = self.context.get('reservation')
+
+        insurance_credit = insurance_price(insurance, reservation.from_when, reservation.to_when)
+        rental_credit = car_rental_price(reservation.car.carprice.standard_price, reservation.from_when,
+                                         reservation.to_when)
+        total_credit = insurance_credit + rental_credit
+
+        if reservation.member.profile.credit_point < (total_credit - reservation.total_credit()):
+            raise serializers.ValidationError('크레딧이 부족합니다.')
+        return attrs
+
     def update(self, instance, validated_data):
         paid_credit = instance.total_credit()
-        existing_insurance = instance.insurance
         instance.insurance = validated_data['insurance']
         instance.save()
 
+        # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.total_credit() > paid_credit:
-            if instance.member.profile.credit_point < (instance.total_credit() - paid_credit):
-                instance.insurance = existing_insurance
-                instance.save()
-                raise ShortCreditException
-            else:
-                instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
-
+            instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
         elif instance.total_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.total_credit())
         instance.member.profile.save()
@@ -141,49 +161,57 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
     from_when = serializers.DateTimeField()
     to_when = serializers.DateTimeField()
 
+    # 예약시간대 현재 시간 이후인지 확인
+    def validate_from_when(self, from_when):
+        if from_when <= timezone.now():
+            raise serializers.ValidationError('현재 시간 이후부터 예약 가능합니다.')
+        return from_when
+
+    def validate(self, attrs):
+        from_when = attrs['from_when']
+        to_when = attrs['to_when']
+        reservation = self.context.get('reservation')
+        car = reservation.car
+
+        # 이용시간대 30분 이상 30일 이하 확인
+        MIN_DURATION = 30 * 60
+        MAX_DURATION = 30 * 60 * 24 * 60
+
+        if not MIN_DURATION <= (to_when - from_when).total_seconds() <= MAX_DURATION:
+            raise serializers.ValidationError('최소 30분부터 최대 30일까지 설정 가능합니다.')
+
+        # 해당 car_id의 예약가능한 시간대 확인
+        reservations = car.reservations.exclude(pk=reservation.id).filter(is_finished=False)
+
+        if (
+                reservations.filter(from_when__lte=to_when, to_when__gte=to_when)
+        ) or (
+                reservations.filter(from_when__lte=from_when, to_when__gte=from_when)
+        ) or (
+                reservations.filter(from_when__gte=from_when, to_when__lte=to_when)
+        ):
+            raise serializers.ValidationError('해당 이용시간대는 사용 불가능합니다.')
+
+        # 해당 member의 크레딧 확인
+        insurance_credit = insurance_price(reservation.insurance, from_when, to_when)
+        rental_credit = car_rental_price(car.carprice.standard_price, from_when, to_when)
+        total_credit = insurance_credit + rental_credit
+
+        if reservation.member.profile.credit_point < total_credit:
+            raise serializers.ValidationError('크레딧이 부족합니다.')
+        return attrs
+
     def update(self, instance, validated_data):
         paid_credit = instance.total_credit()
-        existing_from_when = instance.from_when
-        existing_to_when = instance.to_when
-        reserved_times = instance.car.reservations.exclude(pk=instance.pk).filter(is_finished=False).values(
-            'from_when', 'to_when'
-        )
-
-        if not (30 * 60 <= (
-                validated_data['to_when'] - validated_data['from_when']).total_seconds() <= 30 * 60 * 24 * 60):
-            raise TooLessOrTooMuchTimeException
-
-        if validated_data['from_when'] <= timezone.now():
-            raise BeforeTheCurrentTimeException
-
-        if reserved_times:
-            for time in reserved_times:
-                if (
-                        validated_data['from_when'] <= time['to_when'] <= validated_data['to_when']
-                ) or (
-                        validated_data['from_when'] <= time['from_when'] <= validated_data['to_when']
-                ) or (
-                        validated_data['from_when'] >= time['from_when'] and validated_data['to_when'] <= time[
-                    'to_when']
-                ):
-                    raise AlreadyReservedTimeException
-
         instance.from_when = validated_data['from_when']
         instance.to_when = validated_data['to_when']
         instance.save()
 
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.total_credit() > paid_credit:
-            if instance.member.profile.credit_point < (instance.total_credit() - paid_credit):
-                instance.from_when = existing_from_when
-                instance.to_when = existing_to_when
-                instance.save()
-                raise ShortCreditException
-            else:
-                instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
+            instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
         elif instance.total_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.total_credit())
-
         instance.member.profile.save()
         return instance
 
@@ -194,30 +222,41 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
 class ReservationCarUpdateSerializer(serializers.Serializer):
     car_id = serializers.IntegerField()
 
+    def validate_car_id(self, car_id):
+        try:
+            car = Car.objects.get(pk=car_id)
+
+            if car not in self.context.get('cars'):
+                raise serializers.ValidationError('해당 carzone에서 이용가능한 car id가 아닙니다.')
+            return car_id
+
+        except ObjectDoesNotExist:
+            raise CarDoesNotExistException
+
+    # 해당 member의 크레딧 확인
+    def validate(self, attrs):
+        reservation = self.context.get('reservation')
+
+        insurance_credit = insurance_price(reservation.insurance, reservation.from_when, reservation.to_when)
+        rental_credit = car_rental_price(reservation.car.carprice.standard_price, reservation.from_when,
+                                         reservation.to_when)
+        total_credit = insurance_credit + rental_credit
+
+        if reservation.member.profile.credit_point < (total_credit - reservation.total_credit()):
+            raise serializers.ValidationError('크레딧이 부족합니다.')
+        return attrs
+
     def update(self, instance, validated_data):
         paid_credit = instance.total_credit()
-        existing_car = instance.car
-
         car = Car.objects.get(pk=validated_data['car_id'])
-
-        if car not in self.context.get('cars'):
-            raise NotAvailableCarException
-
         instance.car = car
         instance.save()
 
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
         if instance.total_credit() > paid_credit:
-            if instance.member.profile.credit_point < (instance.total_credit() - paid_credit):
-                instance.car = existing_car
-                instance.save()
-                raise ShortCreditException
-            else:
-                instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
-
+            instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
         elif instance.total_credit() < paid_credit:
             instance.member.profile.credit_point += (paid_credit - instance.total_credit())
-
         instance.member.profile.save()
         return instance
 
