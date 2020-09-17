@@ -18,8 +18,6 @@ class MemberManager(BaseUserManager):
     def _create_user(self, name, email, password, **extra_fields):
         email = self.normalize_email(email)
         user = self.model(name=name, email=email, password=password, **extra_fields)
-
-        user.set_password(password)
         user.save()
         return user
 
@@ -70,9 +68,9 @@ class Member(AbstractBaseUser):
         return self.is_admin
 
     def save(self, *args, **kwargs):
-        self.set_password(self.password)
 
         if not self.id:
+            self.set_password(self.password)
             super().save(*args, **kwargs)
             Profile.objects.create(member=self)
         else:
