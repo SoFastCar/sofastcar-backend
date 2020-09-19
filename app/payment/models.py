@@ -1,6 +1,6 @@
 from django.db import models
 
-from core.utils import payment_price, car_rental_price, insurance_price
+from core.utils import payment_price
 
 
 class Payment(models.Model):

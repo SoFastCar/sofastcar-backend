@@ -50,10 +50,13 @@ class ReservationInsurancePricesViews(APIView):
 
     def get(self, request, reservation_id):
         reservation = self.get_object(reservation_id)
+        from_when = time_format(reservation.from_when)
+        to_when = time_format(reservation.to_when)
+
         return Response({
-            'special': insurance_price('special', reservation.from_when, reservation.to_when),
-            'standard': insurance_price('standard', reservation.from_when, reservation.to_when),
-            'light': insurance_price('light', reservation.from_when, reservation.to_when)
+            'special': insurance_price('special', from_when, to_when),
+            'standard': insurance_price('standard', from_when, to_when),
+            'light': insurance_price('light', from_when, to_when)
         })
 
 
@@ -118,9 +121,12 @@ class ReservationCarzoneAvailableCarsViews(ListAPIView):
 
     def get_serializer_context(self):
         reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
+        from_when = time_format(reservation.from_when)
+        to_when = time_format(reservation.to_when)
+
         return {
-            'from_when': reservation.from_when,
-            'to_when': reservation.to_when
+            'from_when': from_when,
+            'to_when': to_when
         }
 
 

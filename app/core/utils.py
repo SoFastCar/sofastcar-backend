@@ -1,6 +1,6 @@
 import datetime
 
-from core.exceptions import NotValidInsuranceException, NotValidTimeFormatException
+from core.exceptions import NotValidInsuranceException, NotValidTimeFormatException, NotInTenMinutesException
 
 
 def insurance_price(insurance, from_when, to_when):
@@ -55,5 +55,8 @@ def time_format(datetime_str):
 
     year, month, day, hour, minute = int(datetime_str[:4]), int(datetime_str[4:6]), int(datetime_str[6:8]), int(
         datetime_str[8:10]), int(datetime_str[10:])
+
+    if str(minute)[-1] != '0':
+        raise NotInTenMinutesException
 
     return datetime.datetime(year, month, day, hour, minute)
