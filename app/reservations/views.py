@@ -11,7 +11,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from cars.models import Car
 from carzones.models import CarZone
-from core.utils import insurance_price
+from core.utils import insurance_price, time_format
 from core.exceptions import (
     ReservationDoesNotExistException, CarZoneDoesNotExistException, CarDoesNotExistException,
     TooLessOrTooMuchTimeException, BeforeTheCurrentTimeException
@@ -174,10 +174,13 @@ class CarzoneAvailableCarsViews(RetrieveAPIView):
 
     def get_object(self):
         try:
-            from_when = datetime.datetime.strptime(self.request.data['from_when'], '%Y-%m-%dT%H:%M:%S.%f')
-            to_when = datetime.datetime.strptime(self.request.data['to_when'], '%Y-%m-%dT%H:%M:%S.%f')
+            from_when = time_format(self.request.data['from_when'])
+            to_when = time_format(self.request.data['to_when'])
 
-            if not (30 * 60 <= (to_when - from_when).total_seconds() <= 30 * 60 * 24 * 60):
+            MIN_DURATION = 30 * 60
+            MAX_DURATION = 30 * 60 * 24 * 60
+
+            if not MIN_DURATION <= (to_when - from_when).total_seconds() <= MAX_DURATION:
                 raise TooLessOrTooMuchTimeException
 
             if from_when <= datetime.datetime.now():
@@ -190,8 +193,8 @@ class CarzoneAvailableCarsViews(RetrieveAPIView):
 
     def get_serializer_context(self):
         return {
-            'to_when': self.request.data['to_when'],
-            'from_when': self.request.data['from_when']
+            'from_when': time_format(self.request.data['from_when']),
+            'to_when': time_format(self.request.data['to_when'])
         }
 
 

@@ -70,3 +70,9 @@ class NotValidInsuranceException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = '가능한 insurance 이름이 아닙니다.'
     default_code = 'NotValidInsurance'
+
+
+class NotValidTimeFormatException(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = '가능한 datetime 포맷이 아닙니다. (예: 202008271620)'
+    default_code = 'NotValidTimeFormat'

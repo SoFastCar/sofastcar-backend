@@ -1,4 +1,6 @@
-from core.exceptions import NotValidInsuranceException
+import datetime
+
+from core.exceptions import NotValidInsuranceException, NotValidTimeFormatException
 
 
 def insurance_price(insurance, from_when, to_when):
@@ -45,3 +47,13 @@ def payment_price(distance, min_price, mid_price, max_price):
     if distance >= 0:
         price += (min_price * distance)
         return int(round(price, -1))
+
+
+def time_format(datetime_str):
+    if not (type(datetime_str) == str and len(datetime_str) == 12):
+        raise NotValidTimeFormatException
+
+    year, month, day, hour, minute = int(datetime_str[:4]), int(datetime_str[4:6]), int(datetime_str[6:8]), int(
+        datetime_str[8:10]), int(datetime_str[10:])
+
+    return datetime.datetime(year, month, day, hour, minute)

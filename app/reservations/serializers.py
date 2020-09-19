@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 from cars.models import Car
 from carzones.models import CarZone
-from core.utils import insurance_price, car_rental_price
+from core.utils import insurance_price, car_rental_price, time_format
 from core.exceptions import CarDoesNotExistException
 from reservations.models import Reservation
 
@@ -37,8 +37,11 @@ class ReservationSerializer(serializers.ModelSerializer):
             'member',
             'car',
             'carzone',
+            'is_extended',
             'rental_credit',
             'insurance_credit',
+            'extended_rental_credit',
+            'extended_insurance_credit',
             'total_credit',
             'from_when',
             'to_when',
@@ -306,8 +309,8 @@ class CarzoneAvailableCarsSerializer(serializers.Serializer):
         return self.context.get('to_when')
 
     def get_insurances(self, carzone):
-        to_when = datetime.datetime.strptime(self.context.get('to_when'), '%Y-%m-%dT%H:%M:%S.%f')
-        from_when = datetime.datetime.strptime(self.context.get('from_when'), '%Y-%m-%dT%H:%M:%S.%f')
+        to_when = self.context.get('to_when')
+        from_when = self.context.get('from_when')
 
         return {
             'special': insurance_price('special', from_when, to_when),
@@ -351,7 +354,7 @@ class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError('해당 reservation의 반납 연장 여부를 알 수 없습니다. 서버 관리자에게 문의해 주세요.')
 
         # 예약 시작 < 현재 < 예약 반납 < 연장 반납 시간 확인
-        if not (reservation.from_when < timezone.now() < reservation_to_when < extended_to_when):
+        if not (reservation.from_when < timezone.localtime() < reservation_to_when < extended_to_when):
             raise serializers.ValidationError('예약된 이용시간 이전에는 반납 연장할 수 없습니다.')
 
         # 반납된 예약이 아닌지 확인
@@ -379,3 +382,6 @@ class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
         instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
         instance.member.profile.save()
         return reservation
+
+    def to_representation(self, instance):
+        return ReservationSerializer(instance).data

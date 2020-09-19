@@ -8,7 +8,7 @@ from reservations.views import (
 
 urlpatterns = [
     # carzone별 car 리스트
-    # datetime format ex) 2019-10-03T12:34:00.000 (바꿀 예정)
+    # datetime format: YYYYmmddHHMM ex) 202010031530
     path('carzones/<int:carzone_id>/cars/', CarzoneAvailableCarsViews.as_view()),
     # reservation 생성
     path('', ReservationCreateViews.as_view()),
@@ -30,6 +30,6 @@ urlpatterns = [
     path('cars/<int:car_id>/times/', CarReservedTimesViews.as_view()),
 
     # 반납연장 update
-    path('<int:reservation_id>/time/extensions/', ReservationTimeExtensionUpdateViews.as_view()),
+    path('<int:reservation_id>/time/extension/', ReservationTimeExtensionUpdateViews.as_view()),
 
 ]
