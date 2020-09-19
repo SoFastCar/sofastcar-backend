@@ -155,10 +155,8 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
 
     # 예약시간대 현재 시간 이후인지 확인
     def validate_from_when(self, from_when):
-        reservation = self.context.get('reservation')
-
-        if not (from_when < timezone.now() < reservation.from_when):
-            raise serializers.ValidationError('변경할 이용시작시간은 현재 이전이고, 예약된 이용시작시간은 현재 이후여야 합니다.')
+        if timezone.now() >= from_when:
+            raise serializers.ValidationError('변경할 이용시작시간은 현재 이후여야 합니다.')
         return from_when
 
     def validate(self, attrs):
