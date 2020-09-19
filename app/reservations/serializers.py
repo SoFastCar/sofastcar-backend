@@ -224,6 +224,9 @@ class ReservationCarUpdateSerializer(serializers.Serializer):
         try:
             car = Car.objects.get(pk=car_id)
 
+            if car == reservation.car:
+                raise serializers.ValidationError('기존 예약된 car id와 같습니다.')
+
             # 해당 carzone에 속하는 car인지 확인
             if car not in self.context.get('cars'):
                 raise serializers.ValidationError('해당 carzone에서 이용가능한 car id가 아닙니다.')
