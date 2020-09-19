@@ -1,4 +1,4 @@
-from reservations.exceptions import NotValidInsuranceException
+from core.exceptions import NotValidInsuranceException
 
 
 def insurance_price(insurance, from_when, to_when):

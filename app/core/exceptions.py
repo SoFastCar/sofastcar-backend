@@ -30,6 +30,12 @@ class CarDoesNotExistException(APIException):
     default_code = 'DoesNotExist'
 
 
+class PaymentDoesNotExistException(APIException):
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = '해당하는 payment 인스턴스가 존재하지 않습니다.'
+    default_code = 'DoesNotExist'
+
+
 class TooLessOrTooMuchTimeException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = '최소 30분부터 최대 30일까지 설정 가능합니다.'

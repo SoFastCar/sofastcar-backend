@@ -12,7 +12,7 @@ from rest_framework.viewsets import GenericViewSet
 from cars.models import Car
 from carzones.models import CarZone
 from core.utils import insurance_price
-from reservations.exceptions import (
+from core.exceptions import (
     ReservationDoesNotExistException, CarZoneDoesNotExistException, CarDoesNotExistException,
     TooLessOrTooMuchTimeException, BeforeTheCurrentTimeException
 )
@@ -20,7 +20,7 @@ from reservations.models import Reservation
 from reservations.serializers import (
     ReservationCreateSerializer, ReservationInsuranceUpdateSerializer, ReservationTimeUpdateSerializer,
     CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarsSerializer, ReservationCarUpdateSerializer,
-    ReservationSerializer
+    ReservationSerializer, ReservationTimeExtensionUpdateSerializer
 )
 
 
@@ -206,3 +206,21 @@ class ReservationViewSet(mixins.ListModelMixin,
         if self.action == 'list':
             queryset = queryset.filter(member=self.request.user)
         return super().filter_queryset(queryset)
+
+
+class ReservationTimeExtensionUpdateViews(UpdateAPIView):
+    serializer_class = ReservationTimeExtensionUpdateSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        try:
+            reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'])
+            return reservation
+        except ObjectDoesNotExist:
+            raise ReservationDoesNotExistException
+
+    def get_serializer_context(self):
+        reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'])
+        return {
+            'reservation': reservation
+        }

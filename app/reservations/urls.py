@@ -3,7 +3,7 @@ from django.urls import path
 from reservations.views import (
     ReservationCreateViews, ReservationInsuranceUpdateViews, ReservationTimeUpdateViews, CarReservedTimesViews,
     CarzoneAvailableCarsViews, ReservationCarzoneAvailableCarsViews, ReservationCarUpdateViews,
-    ReservationInsurancePricesViews
+    ReservationInsurancePricesViews, ReservationTimeExtensionUpdateViews
 )
 
 urlpatterns = [
@@ -28,4 +28,8 @@ urlpatterns = [
 
     # car별 예약된 시간대 리스트
     path('cars/<int:car_id>/times/', CarReservedTimesViews.as_view()),
+
+    # 반납연장 update
+    path('<int:reservation_id>/time/extensions/', ReservationTimeExtensionUpdateViews.as_view()),
+
 ]
