@@ -1,4 +1,10 @@
-from reservations.exceptions import NotValidInsuranceException
+import datetime
+
+import pytz
+
+from core.exceptions import NotValidInsuranceException, NotValidTimeFormatException, NotInTenMinutesException
+
+KST = pytz.timezone('Asia/Seoul')
 
 
 def insurance_price(insurance, from_when, to_when):
@@ -45,3 +51,17 @@ def payment_price(distance, min_price, mid_price, max_price):
     if distance >= 0:
         price += (min_price * distance)
         return int(round(price, -1))
+
+
+def time_format(datetime_str):
+    if not (type(datetime_str) == str and len(datetime_str) == 12):
+        raise NotValidTimeFormatException
+
+    year, month, day, hour, minute = int(datetime_str[:4]), int(datetime_str[4:6]), int(datetime_str[6:8]), int(
+        datetime_str[8:10]), int(datetime_str[10:])
+
+    if str(minute)[-1] != '0':
+        raise NotInTenMinutesException
+    time = datetime.datetime.strptime(f'{year}-{month}-{day} {hour}:{minute}', '%Y-%m-%d %H:%M')
+    utc_time = time.replace(hour=time.hour - 9)  # UTC 기준으로 변경..
+    return utc_time.astimezone(pytz.utc)  # naive -> aware 형식으로 변경

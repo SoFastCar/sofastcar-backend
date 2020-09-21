@@ -30,6 +30,12 @@ class CarDoesNotExistException(APIException):
     default_code = 'DoesNotExist'
 
 
+class PaymentDoesNotExistException(APIException):
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = '해당하는 payment 인스턴스가 존재하지 않습니다.'
+    default_code = 'DoesNotExist'
+
+
 class TooLessOrTooMuchTimeException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = '최소 30분부터 최대 30일까지 설정 가능합니다.'
@@ -64,3 +70,15 @@ class NotValidInsuranceException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = '가능한 insurance 이름이 아닙니다.'
     default_code = 'NotValidInsurance'
+
+
+class NotValidTimeFormatException(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = '가능한 datetime 포맷이 아닙니다. (예: 202008271620)'
+    default_code = 'NotValidTimeFormat'
+
+
+class NotInTenMinutesException(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = '10분 단위여야 합니다.'
+    default_code = 'NotInTenMinutes'

@@ -3,12 +3,12 @@ from django.urls import path
 from reservations.views import (
     ReservationCreateViews, ReservationInsuranceUpdateViews, ReservationTimeUpdateViews, CarReservedTimesViews,
     CarzoneAvailableCarsViews, ReservationCarzoneAvailableCarsViews, ReservationCarUpdateViews,
-    ReservationInsurancePricesViews
+    ReservationInsurancePricesViews, ReservationTimeExtensionUpdateViews
 )
 
 urlpatterns = [
     # carzone별 car 리스트
-    # datetime format ex) 2019-10-03T12:34:00.000 (바꿀 예정)
+    # datetime format: YYYYmmddHHMM ex) 202010031530
     path('carzones/<int:carzone_id>/cars/', CarzoneAvailableCarsViews.as_view()),
     # reservation 생성
     path('', ReservationCreateViews.as_view()),
@@ -28,4 +28,7 @@ urlpatterns = [
 
     # car별 예약된 시간대 리스트
     path('cars/<int:car_id>/times/', CarReservedTimesViews.as_view()),
+
+    # 반납연장 update
+    path('<int:reservation_id>/time/extension/', ReservationTimeExtensionUpdateViews.as_view()),
 ]
