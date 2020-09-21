@@ -415,3 +415,31 @@ class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return ReservationSerializer(instance).data
+
+
+class AlarmCarSerializer(serializers.ModelSerializer):
+    car_id = serializers.IntegerField(source='id')
+
+    class Meta:
+        model = Car
+        fields = (
+            'car_id',
+            'number',
+            'image',
+            'manufacturer',
+            'fuel_type',
+        )
+
+
+class ReservationAlarmSerializer(serializers.ModelSerializer):
+    reservation_id = serializers.IntegerField(source='id')
+    car = AlarmCarSerializer()
+    address = serializers.CharField(source='car.zone.address')
+
+    class Meta:
+        model = Reservation
+        fields = (
+            'reservation_id',
+            'car',
+            'address',
+        )
