@@ -20,7 +20,7 @@ from reservations.models import Reservation
 from reservations.serializers import (
     ReservationCreateSerializer, ReservationInsuranceUpdateSerializer, ReservationTimeUpdateSerializer,
     CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarsSerializer, ReservationCarUpdateSerializer,
-    ReservationSerializer, ReservationTimeExtensionUpdateSerializer
+    ReservationSerializer, ReservationTimeExtensionUpdateSerializer, ReservationAlarmSerializer
 )
 
 
@@ -241,3 +241,15 @@ class ReservationTimeExtensionUpdateViews(UpdateAPIView):
         return {
             'reservation': reservation
         }
+
+
+class ReservationAlarmViews(RetrieveAPIView):
+    serializer_class = ReservationAlarmSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        try:
+            reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'])
+            return reservation
+        except ObjectDoesNotExist:
+            raise ReservationDoesNotExistException
