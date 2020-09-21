@@ -1,6 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
+from cars.models import Car
 from core.exceptions import ReservationDoesNotExistException
 from core.utils import payment_price, KST
 from payment.models import Payment
@@ -61,3 +62,68 @@ class PaymentCreateSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         return PaymentSerializer(instance).data
+
+
+class ReservationHistoryCarSerializer(serializers.ModelSerializer):
+    min_price = serializers.IntegerField(source='carprice.min_price_per_km')
+    max_price = serializers.IntegerField(source='carprice.max_price_per_km')
+
+    class Meta:
+        model = Car
+        fields = (
+            'number',
+            'manufacturer',
+            'min_price',
+            'max_price',
+        )
+
+
+class ReservationHistorySerializer(serializers.ModelSerializer):
+    from_when = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
+    to_when = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
+    time = serializers.SerializerMethodField('get_time')
+    car = ReservationHistoryCarSerializer()
+    address = serializers.CharField(source='car.zone.address')
+
+    class Meta:
+        model = Reservation
+        fields = (
+            'from_when',
+            'to_when',
+            'time',
+            'car',
+            'address',
+        )
+
+    def get_time(self, reservation):
+        time = int(reservation.time())
+        return f'{time}분'
+
+
+class PaymentHistorySerializer(serializers.ModelSerializer):
+    rental_credit = serializers.IntegerField(source='reservation.rental_credit')
+    insurance_credit = serializers.IntegerField(source='reservation.insurance_credit')
+    extended_rental_credit = serializers.IntegerField(source='reservation.extended_rental_credit')
+    extended_insurance_credit = serializers.IntegerField(source='reservation.extended_insurance_credit')
+    reservation_total_credit = serializers.IntegerField(source='reservation.total_credit')
+
+    class Meta:
+        model = Payment
+        fields = (
+            'rental_credit',
+            'insurance_credit',
+            'extended_rental_credit',
+            'extended_insurance_credit',
+            'reservation_total_credit',
+            'miles_credit',
+        )
+
+
+class PaymentRentalHistorySerializer(serializers.Serializer):
+    payment_id = serializers.IntegerField(source='id')
+    reservation = ReservationHistorySerializer()
+    payment = serializers.SerializerMethodField('get_payment')
+
+    def get_payment(self, payment):
+        serializer = PaymentHistorySerializer(instance=payment)
+        return serializer.data
