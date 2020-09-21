@@ -1,6 +1,6 @@
-import datetime
-
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Count
+from django.utils import timezone
 
 from rest_framework.generics import CreateAPIView, UpdateAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -22,6 +22,36 @@ from reservations.serializers import (
     CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarsSerializer, ReservationCarUpdateSerializer,
     ReservationSerializer, ReservationTimeExtensionUpdateSerializer
 )
+
+
+class CarzoneAvailableCarsViews(RetrieveAPIView):
+    serializer_class = CarzoneAvailableCarsSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        try:
+            time_from = time_format(self.request.data['from_when'])
+            time_to = time_format(self.request.data['to_when'])
+
+            MIN_DURATION = 30 * 60
+            MAX_DURATION = 30 * 60 * 24 * 60
+
+            if not MIN_DURATION <= (time_to - time_from).total_seconds() <= MAX_DURATION:
+                raise TooLessOrTooMuchTimeException
+
+            if time_from <= timezone.now():
+                raise BeforeTheCurrentTimeException
+
+            carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
+            return carzone
+        except ObjectDoesNotExist:
+            raise CarZoneDoesNotExistException
+
+    def get_serializer_context(self):
+        return {
+            'time_from': time_format(self.request.data['from_when']),
+            'time_to': time_format(self.request.data['to_when'])
+        }
 
 
 class ReservationCreateViews(CreateAPIView):
@@ -50,8 +80,8 @@ class ReservationInsurancePricesViews(APIView):
 
     def get(self, request, reservation_id):
         reservation = self.get_object(reservation_id)
-        from_when = time_format(reservation.from_when)
-        to_when = time_format(reservation.to_when)
+        from_when = reservation.from_when
+        to_when = reservation.to_when
 
         return Response({
             'special': insurance_price('special', from_when, to_when),
@@ -101,9 +131,13 @@ class ReservationCarzoneAvailableCarsViews(ListAPIView):
     def get_queryset(self):
         try:
             carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
+
             try:
                 reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
-                cars = carzone.cars.exclude(reservations=reservation).exclude(reservations__is_finished=True).exclude(
+
+                reservation_none_cars = carzone.cars.annotate(cnt=Count('reservations')).filter(cnt=0)
+                available_time_cars = carzone.cars.exclude(reservations=reservation).filter(
+                    reservations__is_finished=False).exclude(
                     reservations__from_when__lte=reservation.to_when,
                     reservations__to_when__gte=reservation.to_when
                 ).exclude(
@@ -113,20 +147,20 @@ class ReservationCarzoneAvailableCarsViews(ListAPIView):
                     reservations__from_when__gte=reservation.from_when,
                     reservations__to_when__lte=reservation.to_when
                 )
+                cars = reservation_none_cars or available_time_cars
                 return cars
             except ObjectDoesNotExist:
                 raise ReservationDoesNotExistException
+
         except ObjectDoesNotExist:
             raise CarZoneDoesNotExistException
 
     def get_serializer_context(self):
         reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
-        from_when = time_format(reservation.from_when)
-        to_when = time_format(reservation.to_when)
 
         return {
-            'from_when': from_when,
-            'to_when': to_when
+            'time_from': reservation.from_when,
+            'time_to': reservation.to_when
         }
 
 
@@ -145,7 +179,9 @@ class ReservationCarUpdateViews(UpdateAPIView):
         carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
         reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
 
-        cars = carzone.cars.exclude(reservations=reservation).exclude(reservations__is_finished=True).exclude(
+        reservation_none_cars = carzone.cars.annotate(cnt=Count('reservations')).filter(cnt=0)
+        available_time_cars = carzone.cars.exclude(reservations=reservation).filter(
+            reservations__is_finished=False).exclude(
             reservations__from_when__lte=reservation.to_when,
             reservations__to_when__gte=reservation.to_when
         ).exclude(
@@ -155,6 +191,8 @@ class ReservationCarUpdateViews(UpdateAPIView):
             reservations__from_when__gte=reservation.from_when,
             reservations__to_when__lte=reservation.to_when
         )
+        cars = reservation_none_cars or available_time_cars
+
         return {
             'cars': cars,
             'reservation': reservation
@@ -172,36 +210,6 @@ class CarReservedTimesViews(ListAPIView):
             return reservations
         except ObjectDoesNotExist:
             raise CarDoesNotExistException
-
-
-class CarzoneAvailableCarsViews(RetrieveAPIView):
-    serializer_class = CarzoneAvailableCarsSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_object(self):
-        try:
-            from_when = time_format(self.request.data['from_when'])
-            to_when = time_format(self.request.data['to_when'])
-
-            MIN_DURATION = 30 * 60
-            MAX_DURATION = 30 * 60 * 24 * 60
-
-            if not MIN_DURATION <= (to_when - from_when).total_seconds() <= MAX_DURATION:
-                raise TooLessOrTooMuchTimeException
-
-            if from_when <= datetime.datetime.now():
-                raise BeforeTheCurrentTimeException
-
-            carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
-            return carzone
-        except ObjectDoesNotExist:
-            raise CarZoneDoesNotExistException
-
-    def get_serializer_context(self):
-        return {
-            'from_when': time_format(self.request.data['from_when']),
-            'to_when': time_format(self.request.data['to_when'])
-        }
 
 
 class ReservationViewSet(mixins.ListModelMixin,

@@ -31,5 +31,4 @@ urlpatterns = [
 
     # 반납연장 update
     path('<int:reservation_id>/time/extension/', ReservationTimeExtensionUpdateViews.as_view()),
-
 ]

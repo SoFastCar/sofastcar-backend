@@ -1,6 +1,10 @@
 import datetime
 
+import pytz
+
 from core.exceptions import NotValidInsuranceException, NotValidTimeFormatException, NotInTenMinutesException
+
+KST = pytz.timezone('Asia/Seoul')
 
 
 def insurance_price(insurance, from_when, to_when):
@@ -58,5 +62,6 @@ def time_format(datetime_str):
 
     if str(minute)[-1] != '0':
         raise NotInTenMinutesException
-
-    return datetime.datetime(year, month, day, hour, minute)
+    time = datetime.datetime.strptime(f'{year}-{month}-{day} {hour}:{minute}', '%Y-%m-%d %H:%M')
+    utc_time = time.replace(hour=time.hour - 9)  # UTC 기준으로 변경..
+    return utc_time.astimezone(pytz.utc)  # naive -> aware 형식으로 변경
