@@ -40,9 +40,11 @@ class PaymentCreateSerializer(serializers.Serializer):
             member = reservation.member
             price = reservation.car.carprice
             min_price, mid_price, max_price = price.min_price_per_km, price.mid_price_per_km, price.max_price_per_km
-            miles_credit = payment_price(attrs['distance'], min_price, mid_price, max_price)
 
-            if member.profile.credit_point < miles_credit:
+            miles_credit = payment_price(attrs['distance'], min_price, mid_price, max_price)
+            extended_credit = reservation.extended_rental_credit() + reservation.extended_insurance_credit()
+
+            if member.profile.credit_point < miles_credit + extended_credit:
                 raise serializers.ValidationError('보유 크레딧이 부족합니다.')
         except ObjectDoesNotExist:
             raise ReservationDoesNotExistException
@@ -55,8 +57,10 @@ class PaymentCreateSerializer(serializers.Serializer):
         reservation.is_finished = True
         reservation.save()
 
+        # (주행료 + 반납연장 추가요금) 차감
         member = reservation.member
-        member.profile.credit_point -= payment.miles_credit()
+        member.profile.credit_point -= (
+                payment.miles_credit() + reservation.extended_rental_credit() + reservation.extended_insurance_credit())
         member.profile.save()
         return payment
 

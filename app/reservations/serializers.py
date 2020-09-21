@@ -373,14 +373,12 @@ class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
         reservation = self.context.get('reservation')
         from_when = reservation.from_when
         to_when = reservation.to_when
-        member = reservation.member
+        extended_to = time_format(extended_to_when)
 
         if reservation.is_extended:
             reservation_to_when = reservation.extended_to_when
-            extended_to = time_format(extended_to_when)
         elif not reservation.is_extended:
             reservation_to_when = to_when
-            extended_to = extended_to_when
         else:
             raise serializers.ValidationError('해당 reservation의 반납 연장 여부를 알 수 없습니다. 서버 관리자에게 문의해 주세요.')
 
@@ -391,26 +389,13 @@ class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
         # 반납된 예약이 아닌지 확인
         if reservation.is_finished:
             raise serializers.ValidationError('이미 반납된 reservation 인스턴스입니다.')
-
-        # 보유 크레딧 확인
-        extended_rental_credit = car_rental_price(reservation.car.carprice.standard_price, to_when, extended_to)
-        extended_insurance_credit = insurance_price(reservation.insurance, to_when, extended_to)
-        total_credit = reservation.rental_credit() + reservation.insurance_credit() + extended_rental_credit + extended_insurance_credit
-
-        if member.profile.credit_point < total_credit - reservation.total_credit():
-            raise serializers.ValidationError('크레딧이 부족합니다.')
         return extended_to_when
 
     def update(self, instance, validated_data):
-        paid_credit = instance.total_credit()
         reservation = self.context.get('reservation')
         reservation.is_extended = True
         reservation.extended_to_when = time_format(validated_data['extended_to_when'])
         reservation.save()
-
-        # 연장된 요금에 따라 해당 사용자의 크레딧 차감
-        instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
-        instance.member.profile.save()
         return reservation
 
     def to_representation(self, instance):
