@@ -32,6 +32,6 @@ urlpatterns = [
     # 반납연장 update
     path('<int:reservation_id>/time/extension/', ReservationTimeExtensionUpdateViews.as_view()),
 
-    # 예약 시작알림 정보
+    # 예약 시작 및 반납 알림, 대여정보
     path('<int:reservation_id>/alarm/', ReservationAlarmViews.as_view()),
 ]
