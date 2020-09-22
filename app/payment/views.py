@@ -22,7 +22,7 @@ class PaymentRentalHistoryViews(generics.RetrieveAPIView):
 
     def get_object(self):
         try:
-            reservation = Payment.objects.get(pk=self.kwargs['payment_id'])
-            return reservation
+            payment = Payment.objects.get(pk=self.kwargs['payment_id'])
+            return payment
         except ObjectDoesNotExist:
             raise PaymentDoesNotExistException
