@@ -25,18 +25,24 @@ class Reservation(models.Model):
     is_finished = models.BooleanField(default=False)  # payment 생성시 True 갱신
 
     def time(self):
-        time_minutes = (self.to_when - self.from_when).total_seconds() / 60
+        if self.is_extended:
+            time_minutes = (self.extended_to_when - self.from_when).total_seconds() / 60
+        elif not self.is_extended:
+            time_minutes = (self.to_when - self.from_when).total_seconds() / 60
         return time_minutes
 
-    def rental_credit(self):
+    def rental_standard_credit(self):
         price = car_rental_price(self.car.carprice.standard_price, self.from_when, self.to_when)
         return price
 
-    def insurance_credit(self):
+    def rental_insurance_credit(self):
         insurance = insurance_price(self.insurance, self.from_when, self.to_when)
         return insurance
 
-    def extended_rental_credit(self):
+    def rental_credit(self):
+        return self.rental_standard_credit() + self.rental_insurance_credit()
+
+    def extended_standard_credit(self):
         if self.is_extended:
             price = car_rental_price(self.car.carprice.standard_price, self.to_when, self.extended_to_when)
             return price
@@ -50,5 +56,5 @@ class Reservation(models.Model):
         elif not self.is_extended:
             return 0
 
-    def total_credit(self):
-        return self.rental_credit() + self.insurance_credit() + self.extended_rental_credit() + self.extended_insurance_credit()
+    def extended_credit(self):
+        return self.extended_standard_credit() + self.extended_insurance_credit()

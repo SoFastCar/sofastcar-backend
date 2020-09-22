@@ -1,5 +1,4 @@
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count
 from django.utils import timezone
 
 from rest_framework.generics import CreateAPIView, UpdateAPIView, ListAPIView, RetrieveAPIView
@@ -15,13 +14,26 @@ from core.utils import insurance_price, time_format
 from core.exceptions import (
     ReservationDoesNotExistException, CarZoneDoesNotExistException, CarDoesNotExistException,
     TooLessOrTooMuchTimeException, BeforeTheCurrentTimeException
+
 )
 from reservations.models import Reservation
 from reservations.serializers import (
     ReservationCreateSerializer, ReservationInsuranceUpdateSerializer, ReservationTimeUpdateSerializer,
-    CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, CarsSerializer, ReservationCarUpdateSerializer,
-    ReservationSerializer, ReservationTimeExtensionUpdateSerializer, ReservationAlarmSerializer
+    CarReservedTimesSerializer, CarzoneAvailableCarsSerializer, ReservationSerializer,
+    ReservationTimeExtensionUpdateSerializer, AddressSerializer
 )
+
+
+class CarzoneRetrieveViews(RetrieveAPIView):
+    serializer_class = AddressSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        try:
+            carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
+            return carzone
+        except ObjectDoesNotExist:
+            raise CarZoneDoesNotExistException
 
 
 class CarzoneAvailableCarsViews(RetrieveAPIView):
@@ -66,6 +78,18 @@ class ReservationCreateViews(CreateAPIView):
         return {
             'member': self.request.user
         }
+
+
+class ReservationRetrieveViews(RetrieveAPIView):
+    serializer_class = ReservationSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_object(self):
+        try:
+            reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'])
+            return reservation
+        except ObjectDoesNotExist:
+            raise ReservationDoesNotExistException
 
 
 class ReservationInsurancePricesViews(APIView):
@@ -124,81 +148,6 @@ class ReservationTimeUpdateViews(UpdateAPIView):
         }
 
 
-class ReservationCarzoneAvailableCarsViews(ListAPIView):
-    serializer_class = CarsSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_queryset(self):
-        try:
-            carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
-
-            try:
-                reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
-
-                reservation_none_cars = carzone.cars.annotate(cnt=Count('reservations')).filter(cnt=0)
-                available_time_cars = carzone.cars.exclude(reservations=reservation).filter(
-                    reservations__is_finished=False).exclude(
-                    reservations__from_when__lte=reservation.to_when,
-                    reservations__to_when__gte=reservation.to_when
-                ).exclude(
-                    reservations__from_when__lte=reservation.from_when,
-                    reservations__to_when__gte=reservation.from_when
-                ).exclude(
-                    reservations__from_when__gte=reservation.from_when,
-                    reservations__to_when__lte=reservation.to_when
-                )
-                cars = reservation_none_cars or available_time_cars
-                return cars
-            except ObjectDoesNotExist:
-                raise ReservationDoesNotExistException
-
-        except ObjectDoesNotExist:
-            raise CarZoneDoesNotExistException
-
-    def get_serializer_context(self):
-        reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
-
-        return {
-            'time_from': reservation.from_when,
-            'time_to': reservation.to_when
-        }
-
-
-class ReservationCarUpdateViews(UpdateAPIView):
-    serializer_class = ReservationCarUpdateSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_object(self):
-        try:
-            reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
-            return reservation
-        except ObjectDoesNotExist:
-            raise ReservationDoesNotExistException
-
-    def get_serializer_context(self):
-        carzone = CarZone.objects.get(pk=self.kwargs['carzone_id'])
-        reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'], member=self.request.user)
-
-        reservation_none_cars = carzone.cars.annotate(cnt=Count('reservations')).filter(cnt=0)
-        available_time_cars = carzone.cars.exclude(reservations=reservation).filter(
-            reservations__is_finished=False).exclude(
-            reservations__from_when__lte=reservation.to_when,
-            reservations__to_when__gte=reservation.to_when
-        ).exclude(
-            reservations__from_when__lte=reservation.from_when,
-            reservations__to_when__gte=reservation.from_when
-        ).exclude(
-            reservations__from_when__gte=reservation.from_when,
-            reservations__to_when__lte=reservation.to_when
-        )
-        cars = reservation_none_cars or available_time_cars
-
-        return {
-            'cars': cars,
-            'reservation': reservation
-        }
-
-
 class CarReservedTimesViews(ListAPIView):
     serializer_class = CarReservedTimesSerializer
     permission_classes = (IsAuthenticated,)
@@ -241,15 +190,3 @@ class ReservationTimeExtensionUpdateViews(UpdateAPIView):
         return {
             'reservation': reservation
         }
-
-
-class ReservationAlarmViews(RetrieveAPIView):
-    serializer_class = ReservationAlarmSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_object(self):
-        try:
-            reservation = Reservation.objects.get(pk=self.kwargs['reservation_id'])
-            return reservation
-        except ObjectDoesNotExist:
-            raise ReservationDoesNotExistException
