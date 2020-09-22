@@ -404,27 +404,54 @@ class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
 
 class AlarmCarSerializer(serializers.ModelSerializer):
     car_id = serializers.IntegerField(source='id')
+    seater = serializers.IntegerField(source='riding_capacity')
+    standard_price = serializers.IntegerField(source='carprice.standard_price')
+    miles_min_price = serializers.IntegerField(source='carprice.min_price_per_km')
+    miles_max_price = serializers.IntegerField(source='carprice.max_price_per_km')
 
     class Meta:
         model = Car
         fields = (
             'car_id',
             'number',
+            'name',
             'image',
             'manufacturer',
+            'type_of_vehicle',
             'fuel_type',
+            'shift_type',
+            'seater',
+            'safety_option',
+            'convenience_option',
+            'standard_price',
+            'miles_min_price',
+            'miles_max_price',
+        )
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    carzone_id = serializers.IntegerField(source='id')
+
+    class Meta:
+        model = CarZone
+        fields = (
+            'carzone_id',
+            'address',
+            'type',
+            'detail_info',
+            'operating_time',
         )
 
 
 class ReservationAlarmSerializer(serializers.ModelSerializer):
     reservation_id = serializers.IntegerField(source='id')
     car = AlarmCarSerializer()
-    address = serializers.CharField(source='car.zone.address')
+    carzone = AddressSerializer(source='car.zone')
 
     class Meta:
         model = Reservation
         fields = (
             'reservation_id',
             'car',
-            'address',
+            'carzone',
         )
