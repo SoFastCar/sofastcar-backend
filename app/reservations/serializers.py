@@ -445,6 +445,7 @@ class AddressSerializer(serializers.ModelSerializer):
 
 class ReservationAlarmSerializer(serializers.ModelSerializer):
     reservation_id = serializers.IntegerField(source='id')
+    from_when = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
     car = AlarmCarSerializer()
     carzone = AddressSerializer(source='car.zone')
 
@@ -452,6 +453,7 @@ class ReservationAlarmSerializer(serializers.ModelSerializer):
         model = Reservation
         fields = (
             'reservation_id',
+            'from_when',
             'car',
             'carzone',
         )
