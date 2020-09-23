@@ -4,7 +4,7 @@ from rest_framework.routers import SimpleRouter
 from rest_framework_jwt.views import obtain_jwt_token, refresh_jwt_token, verify_jwt_token
 from rest_framework_nested import routers
 
-from cars.views import CarViewSet, PhotoBeforeUseViewSet
+from cars.views import CarViewSet
 from carzones.views import CarZoneViewSet
 from events.views import EventPhotoViewSet
 from members.views import MembersViewSet, ProfileViewSet, PhoneAuthViewSet
@@ -28,7 +28,7 @@ carzone_router.register('cars', CarViewSet)
 reservations/123/photos
 """
 reservation_router = routers.NestedSimpleRouter(router, 'reservations', lookup='reservation')
-reservation_router.register('photos', PhotoBeforeUseViewSet)
+# reservation_router.register('photos', PhotoBeforeUseViewSet)
 
 
 urlpatterns = router.urls

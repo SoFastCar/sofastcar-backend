@@ -52,8 +52,8 @@ class Car(models.Model):
     convenience_option = models.CharField(max_length=255, default='')
 
 
-class PhotoBeforeUse(models.Model):
-    reservation = models.ForeignKey('reservations.Reservation', related_name='ready_photos', on_delete=models.CASCADE)
-    member = models.ForeignKey('members.Member', related_name='image_owners', on_delete=models.CASCADE)
-    image = models.ImageField(null=True, upload_to=f'ImagesBeforeUse/%Y/%m/%d/{reservation}/')
-    time_stamp = models.DateTimeField(auto_now_add=True)
+# class PhotoBeforeUse(models.Model):
+#     reservation = models.ForeignKey('reservations.Reservation', related_name='ready_photos', on_delete=models.CASCADE)
+#     member = models.ForeignKey('members.Member', related_name='image_owners', on_delete=models.CASCADE)
+#     image = models.ImageField(null=True, upload_to=f'ImagesBeforeUse/%Y/%m/%d/{reservation}/')
+#     time_stamp = models.DateTimeField(auto_now_add=True)
