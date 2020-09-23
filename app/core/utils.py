@@ -62,6 +62,6 @@ def time_format(datetime_str):
 
     if str(minute)[-1] != '0':
         raise NotInTenMinutesException
-    time = datetime.datetime.strptime(f'{year}-{month}-{day} {hour}:{minute}', '%Y-%m-%d %H:%M')
+    time = datetime.datetime(year, month, day, hour, minute)
     utc_time = time.replace(hour=time.hour - 9)  # UTC 기준으로 변경..
     return utc_time.astimezone(pytz.utc)  # naive -> aware 형식으로 변경
