@@ -1,5 +1,7 @@
+from itertools import chain
+
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -22,7 +24,13 @@ class CarsSerializer(serializers.ModelSerializer):
             'image',
             'name',
             'price',
+            'manufacturer',
+            'fuel_type',
+            'type_of_vehicle',
+            'shift_type',
             'seater',
+            'safety_option',
+            'convenience_option',
         )
 
     def get_price(self, car):
@@ -32,8 +40,6 @@ class CarsSerializer(serializers.ModelSerializer):
 
 
 class CarzoneAvailableCarsSerializer(serializers.ModelSerializer):
-    from_when = serializers.SerializerMethodField('get_from_when')
-    to_when = serializers.SerializerMethodField('get_to_when')
     insurances = serializers.SerializerMethodField('get_insurances')
     cars = serializers.SerializerMethodField('get_cars')
 
@@ -41,20 +47,11 @@ class CarzoneAvailableCarsSerializer(serializers.ModelSerializer):
         model = CarZone
         fields = (
             'address',
-            'from_when',
-            'to_when',
+            'type',
+            'name',
             'insurances',
             'cars',
         )
-
-    # 원하는 datetime 포맷으로 안나옴 (수정 필요)
-    def get_from_when(self, carzone):
-        time_from = self.context.get('time_from')
-        return time_from.astimezone(KST)
-
-    def get_to_when(self, carzone):
-        time_to = self.context.get('time_to')
-        return time_to.astimezone(KST)
 
     def get_insurances(self, carzone):
         time_from = self.context.get('time_from')
@@ -82,7 +79,8 @@ class CarzoneAvailableCarsSerializer(serializers.ModelSerializer):
         ).exclude(
             reservations__from_when__gte=time_from, reservations__to_when__lte=time_to
         )
-        cars = available_time_cars or reservation_none_cars
+
+        cars = list(chain(reservation_none_cars, available_time_cars))
 
         context = {
             'time_from': time_from,
@@ -93,14 +91,42 @@ class CarzoneAvailableCarsSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
-class CarZoneSerializer(serializers.ModelSerializer):
+class AlarmCarSerializer(serializers.ModelSerializer):
+    car_id = serializers.IntegerField(source='id')
+    seater = serializers.IntegerField(source='riding_capacity')
+    standard_price = serializers.IntegerField(source='carprice.standard_price')
+    miles_min_price = serializers.IntegerField(source='carprice.min_price_per_km')
+    miles_max_price = serializers.IntegerField(source='carprice.max_price_per_km')
+
+    class Meta:
+        model = Car
+        fields = (
+            'car_id',
+            'number',
+            'name',
+            'image',
+            'manufacturer',
+            'type_of_vehicle',
+            'fuel_type',
+            'shift_type',
+            'seater',
+            'safety_option',
+            'convenience_option',
+            'standard_price',
+            'miles_min_price',
+            'miles_max_price',
+        )
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    carzone_id = serializers.IntegerField(source='id')
+
     class Meta:
         model = CarZone
         fields = (
-            'id',
+            'carzone_id',
             'address',
             'name',
-            'region',
             'sub_info',
             'detail_info',
             'type',
@@ -108,33 +134,35 @@ class CarZoneSerializer(serializers.ModelSerializer):
         )
 
 
+# 대여 정보 확인
 class ReservationSerializer(serializers.ModelSerializer):
     reservation_id = serializers.IntegerField(source='id')
-    carzone = CarZoneSerializer(source='car.zone')
+    rental_date = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
     from_when = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
     to_when = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
-    extended_to_when = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
-    rental_date = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
+    time = serializers.SerializerMethodField('get_time')  # format 수정 필요
+    car = AlarmCarSerializer()
+    carzone = AddressSerializer(source='car.zone')
 
     class Meta:
         model = Reservation
         fields = (
             'reservation_id',
-            'member',
-            'car',
-            'carzone',
-            'is_extended',
-            'rental_credit',
-            'insurance_credit',
-            'extended_rental_credit',
-            'extended_insurance_credit',
-            'total_credit',
+            'rental_date',
+            'insurance',
             'from_when',
             'to_when',
-            'extended_to_when',
-            'rental_date',
-            'is_finished',
+            'time',
+            'rental_standard_credit',
+            'rental_insurance_credit',
+            'rental_credit',
+            'car',
+            'carzone',
         )
+
+    def get_time(self, reservation):
+        time = reservation.time()
+        return f'{int(time)}분'
 
 
 class ReservationCreateSerializer(serializers.Serializer):
@@ -146,7 +174,6 @@ class ReservationCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         time_from = time_format(attrs['from_when'])
         time_to = time_format(attrs['to_when'])
-        insurance = attrs['insurance']
         car = Car.objects.get(pk=attrs['car_id'])
         member = self.context.get('member')
 
@@ -173,12 +200,11 @@ class ReservationCreateSerializer(serializers.Serializer):
         ):
             raise serializers.ValidationError('해당 이용시간대는 사용 불가능합니다.')
 
-        # 해당 member의 크레딧 확인
-        insurance_credit = insurance_price(insurance, time_from, time_to)
-        rental_credit = car_rental_price(car.carprice.standard_price, time_from, time_to)
-        total_credit = insurance_credit + rental_credit
+        # 보유 크레딧 확인
+        standard_credit = car_rental_price(car.carprice.standard_price, time_from, time_to)
+        insurance_credit = insurance_price(attrs['insurance'], time_from, time_to)
 
-        if member.profile.credit_point < total_credit:
+        if member.profile.credit_point < standard_credit + insurance_credit:
             raise serializers.ValidationError('크레딧이 부족합니다.')
         return attrs
 
@@ -189,12 +215,11 @@ class ReservationCreateSerializer(serializers.Serializer):
             insurance = validated_data['insurance']
             member = self.context.get('member')
             car = Car.objects.get(pk=validated_data.get('car_id'))
-
             reservation = Reservation.objects.create(car=car, member=member, from_when=time_from, to_when=time_to,
                                                      insurance=insurance)
 
-            # 해당 사용자의 크레딧에서 요금 차감
-            reservation.member.profile.credit_point -= reservation.total_credit()
+            # 크레딧 차감
+            reservation.member.profile.credit_point -= reservation.rental_credit()
             reservation.member.profile.save()
             return reservation
 
@@ -223,24 +248,24 @@ class ReservationInsuranceUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('예약된 이용시간 이후에는 변경할 수 없습니다.')
 
         # 보유 크레딧 확인
+        standard_credit = car_rental_price(reservation.car.carprice.standard_price, from_when, to_when)
         insurance_credit = insurance_price(insurance, from_when, to_when)
-        rental_credit = car_rental_price(reservation.car.carprice.standard_price, from_when, to_when)
-        total_credit = insurance_credit + rental_credit
+        rental_credit = insurance_credit + standard_credit
 
-        if reservation.member.profile.credit_point < (total_credit - reservation.total_credit()):
+        if reservation.member.profile.credit_point < (rental_credit - reservation.rental_credit()):
             raise serializers.ValidationError('크레딧이 부족합니다.')
         return insurance
 
     def update(self, instance, validated_data):
-        paid_credit = instance.total_credit()
+        paid_credit = instance.rental_credit()
         instance.insurance = validated_data['insurance']
         instance.save()
 
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
-        if instance.total_credit() > paid_credit:
-            instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
-        elif instance.total_credit() < paid_credit:
-            instance.member.profile.credit_point += (paid_credit - instance.total_credit())
+        if instance.rental_credit() > paid_credit:
+            instance.member.profile.credit_point -= (instance.rental_credit() - paid_credit)
+        elif instance.rental_credit() < paid_credit:
+            instance.member.profile.credit_point += (paid_credit - instance.rental_credit())
         instance.member.profile.save()
         return instance
 
@@ -257,6 +282,10 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
         time_to = time_format(attrs['to_when'])
         reservation = self.context.get('reservation')
         car = reservation.car
+
+        # 현재 예약 시작시간 이전인지 확인
+        if timezone.now() >= reservation.from_when:
+            raise serializers.ValidationError('예약된 이용시간 이후에는 변경할 수 없습니다.')
 
         # 예약시간대 현재 시간 이후인지 확인
         if timezone.now() >= time_from:
@@ -282,77 +311,25 @@ class ReservationTimeUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError('해당 이용시간대는 사용 불가능합니다.')
 
         # 해당 member의 크레딧 확인
+        standard_credit = car_rental_price(car.carprice.standard_price, time_from, time_to)
         insurance_credit = insurance_price(reservation.insurance, time_from, time_to)
-        rental_credit = car_rental_price(car.carprice.standard_price, time_from, time_to)
-        total_credit = insurance_credit + rental_credit
+        rental_credit = insurance_credit + standard_credit
 
-        if reservation.member.profile.credit_point < total_credit:
+        if reservation.member.profile.credit_point < rental_credit:
             raise serializers.ValidationError('크레딧이 부족합니다.')
         return attrs
 
     def update(self, instance, validated_data):
-        paid_credit = instance.total_credit()
+        paid_credit = instance.rental_credit()
         instance.from_when = time_format(validated_data['from_when'])
         instance.to_when = time_format(validated_data['to_when'])
         instance.save()
 
         # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
-        if instance.total_credit() > paid_credit:
-            instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
-        elif instance.total_credit() < paid_credit:
-            instance.member.profile.credit_point += (paid_credit - instance.total_credit())
-        instance.member.profile.save()
-        return instance
-
-    def to_representation(self, instance):
-        return ReservationSerializer(instance).data
-
-
-class ReservationCarUpdateSerializer(serializers.Serializer):
-    car_id = serializers.IntegerField()
-
-    def validate_car_id(self, car_id):
-        reservation = self.context.get('reservation')
-        from_when = reservation.from_when
-        to_when = reservation.to_when
-
-        # 현재 예약 시작시간 이전인지 확인
-        if timezone.now() >= from_when:
-            raise serializers.ValidationError('이미 예약시간이 지나 수정할 수 없습니다.')
-
-        try:
-            car = Car.objects.get(pk=car_id)
-
-            if car == reservation.car:
-                raise serializers.ValidationError('기존 예약된 car id와 같습니다.')
-
-            # 해당 carzone에 속하는 car인지 확인
-            if car not in self.context.get('cars'):
-                raise serializers.ValidationError('해당 carzone에서 이용가능한 car id가 아닙니다.')
-
-            # 해당 member의 크레딧 확인
-            insurance_credit = insurance_price(reservation.insurance, from_when, to_when)
-            rental_credit = car_rental_price(car.carprice.standard_price, from_when, to_when)
-            total_credit = insurance_credit + rental_credit
-
-            if reservation.member.profile.credit_point < (total_credit - reservation.total_credit()):
-                raise serializers.ValidationError('크레딧이 부족합니다.')
-            return car_id
-
-        except ObjectDoesNotExist:
-            raise CarDoesNotExistException
-
-    def update(self, instance, validated_data):
-        paid_credit = instance.total_credit()
-        car = Car.objects.get(pk=validated_data['car_id'])
-        instance.car = car
-        instance.save()
-
-        # 달라진 요금에 따라 해당 사용자의 크레딧 차감 혹은 적립
-        if instance.total_credit() > paid_credit:
-            instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
-        elif instance.total_credit() < paid_credit:
-            instance.member.profile.credit_point += (paid_credit - instance.total_credit())
+        if instance.rental_credit() > paid_credit:
+            instance.member.profile.credit_point -= (instance.rental_credit() - paid_credit)
+        elif instance.rental_credit() < paid_credit:
+            instance.member.profile.credit_point += (paid_credit - instance.rental_credit())
         instance.member.profile.save()
         return instance
 
@@ -366,6 +343,21 @@ class CarReservedTimesSerializer(serializers.Serializer):
     to_when = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
 
 
+class ReservationExtensionSerializer(serializers.ModelSerializer):
+    reservation_id = serializers.IntegerField(source='id')
+    extended_to_when = serializers.DateTimeField(format='%Y-%m-%d %H:%M', default_timezone=KST)
+
+    class Meta:
+        model = Reservation
+        fields = (
+            'reservation_id',
+            'extended_to_when',
+            'extended_standard_credit',
+            'extended_insurance_credit',
+            'extended_credit',
+        )
+
+
 class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
     extended_to_when = serializers.CharField()
 
@@ -373,14 +365,13 @@ class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
         reservation = self.context.get('reservation')
         from_when = reservation.from_when
         to_when = reservation.to_when
-        member = reservation.member
+        extended_to = time_format(extended_to_when)
 
         if reservation.is_extended:
             reservation_to_when = reservation.extended_to_when
-            extended_to = time_format(extended_to_when)
         elif not reservation.is_extended:
             reservation_to_when = to_when
-            extended_to = extended_to_when
+        # else 구문 없으면 reservation_to_when을 밑에서 쓸 수 없음..
         else:
             raise serializers.ValidationError('해당 reservation의 반납 연장 여부를 알 수 없습니다. 서버 관리자에게 문의해 주세요.')
 
@@ -391,27 +382,14 @@ class ReservationTimeExtensionUpdateSerializer(serializers.Serializer):
         # 반납된 예약이 아닌지 확인
         if reservation.is_finished:
             raise serializers.ValidationError('이미 반납된 reservation 인스턴스입니다.')
-
-        # 보유 크레딧 확인
-        extended_rental_credit = car_rental_price(reservation.car.carprice.standard_price, to_when, extended_to)
-        extended_insurance_credit = insurance_price(reservation.insurance, to_when, extended_to)
-        total_credit = reservation.rental_credit() + reservation.insurance_credit() + extended_rental_credit + extended_insurance_credit
-
-        if member.profile.credit_point < total_credit - reservation.total_credit():
-            raise serializers.ValidationError('크레딧이 부족합니다.')
         return extended_to_when
 
     def update(self, instance, validated_data):
-        paid_credit = instance.total_credit()
         reservation = self.context.get('reservation')
         reservation.is_extended = True
         reservation.extended_to_when = time_format(validated_data['extended_to_when'])
         reservation.save()
-
-        # 연장된 요금에 따라 해당 사용자의 크레딧 차감
-        instance.member.profile.credit_point -= (instance.total_credit() - paid_credit)
-        instance.member.profile.save()
         return reservation
 
     def to_representation(self, instance):
-        return ReservationSerializer(instance).data
+        return ReservationExtensionSerializer(instance).data
