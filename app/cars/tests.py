@@ -8,6 +8,7 @@ from model_bakery import baker
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+# from cars.models import PhotoBeforeUse
 from cars.models import PhotoBeforeUse
 from members.models import Member
 
@@ -49,7 +50,7 @@ class CarTestCase(APITestCase):
             self.assertEqual(entry.id, response_entry['id'])
             self.assertEqual(entry.name, response_entry['name'])
             self.assertEqual(entry.zone.id, response_entry['zone'])
-            self.assertTrue('.jpg' in response_entry['image'])
+            self.assertTrue(response_entry['image'].endswith(entry.image.url))
             self.assertEqual(entry.manufacturer, response_entry['manufacturer'])
             self.assertEqual(entry.fuel_type, response_entry['fuel_type'])
             self.assertEqual(entry.type_of_vehicle, response_entry['type_of_vehicle'])
@@ -80,7 +81,7 @@ class CarTestCase(APITestCase):
         self.assertEqual(self.cars[0].id, response.data['id'])
         self.assertEqual(self.cars[0].name, response.data['name'])
         self.assertEqual(self.cars[0].zone.id, response.data['zone'])
-        self.assertTrue('.jpg' in response.data['image'])
+        self.assertTrue(response.data['image'].endswith(self.cars[0].image.url))
         self.assertEqual(self.cars[0].manufacturer, response.data['manufacturer'])
         self.assertEqual(self.cars[0].fuel_type, response.data['fuel_type'])
         self.assertEqual(self.cars[0].type_of_vehicle, response.data['type_of_vehicle'])
