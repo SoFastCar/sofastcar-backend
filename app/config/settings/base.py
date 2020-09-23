@@ -79,7 +79,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
 
-    # 'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -165,11 +165,11 @@ JWT_AUTH = {
 }
 
 # Sentry settings
-# sentry_sdk.init(
-#     dsn="https://52919a96e568407eb50766411a6f854e@o427978.ingest.sentry.io/5417312",
-#     integrations=[DjangoIntegration()],
-#
-#     # If you wish to associate users to errors (assuming you are using
-#     # django.contrib.auth) you may enable sending PII data.
-#     send_default_pii=True
-# )
+sentry_sdk.init(
+    dsn="https://52919a96e568407eb50766411a6f854e@o427978.ingest.sentry.io/5417312",
+    integrations=[DjangoIntegration()],
+
+    # If you wish to associate users to errors (assuming you are using
+    # django.contrib.auth) you may enable sending PII data.
+    send_default_pii=True
+)
