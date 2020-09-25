@@ -67,9 +67,7 @@ INSTALLED_APPS = [
     'carzones.apps.CarzonesConfig',
     'cars',
     'prices',
-    'reservations.apps.ReservationsConfig',
     'events',
-    'payment.apps.PaymentConfig',
 
     'import_export',
     'storages',

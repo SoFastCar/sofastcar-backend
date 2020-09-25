@@ -3,7 +3,7 @@ from django.contrib import admin
 # Register your models here.
 from import_export.admin import ImportExportMixin
 
-from cars.models import Car, PhotoBeforeUse
+from cars.models import Car
 
 
 @admin.register(Car)
@@ -23,7 +23,7 @@ class CarAdmin(ImportExportMixin, admin.ModelAdmin):
                     'safety_option',
                     'convenience_option',)
 
-
-@admin.register(PhotoBeforeUse)
-class PhotoBeforeUseAdmin(ImportExportMixin, admin.ModelAdmin):
-    list_display = ('id', 'member', 'reservation', 'image', 'time_stamp')
+#
+# @admin.register(PhotoBeforeUse)
+# class PhotoBeforeUseAdmin(ImportExportMixin, admin.ModelAdmin):
+#     list_display = ('id', 'member', 'reservation', 'image', 'time_stamp')

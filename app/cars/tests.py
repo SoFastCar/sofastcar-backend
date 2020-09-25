@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 # from cars.models import PhotoBeforeUse
-from cars.models import PhotoBeforeUse
 from members.models import Member
 
 
@@ -32,10 +31,12 @@ class CarTestCase(APITestCase):
         self.zones = baker.make('carzones.CarZone', _quantity=2)
         self.cars = baker.make('cars.Car', zone=self.zones[0],
                                image=self.test_image.name, _quantity=2)
-        self.car_price_1 = baker.make('prices.CarPrice', car=self.cars[0])
-        self.car_price_2 = baker.make('prices.CarPrice', car=self.cars[1])
+        self.car_price_1 = baker.make('prices.CarPrice', car=self.cars[0], standard_price=1000,
+                                      weekday_price_per_ten_min=10)
+        self.car_price_2 = baker.make('prices.CarPrice', car=self.cars[1], standard_price=2000,
+                                      weekday_price_per_ten_min=20)
         self.car_prices = [self.car_price_1, self.car_price_2]
-        self.reservations = baker.make('reservations.Reservation', member=self.user, _quantity=2)
+        # self.reservations = baker.make('reservations.Reservation', member=self.user, _quantity=2)
         self.client.force_authenticate(user=self.user)
 
     def test_should_list_Cars_and_CarPrices(self):
@@ -98,16 +99,35 @@ class CarTestCase(APITestCase):
         self.assertEqual(self.car_price_1.mid_price_per_km, response.data['car_prices']['mid_price_per_km'])
         self.assertEqual(self.car_price_1.max_price_per_km, response.data['car_prices']['max_price_per_km'])
 
-    def test_should_create_multi_photos(self):
+    def test_should_list_Cars_info_with_prices_at_selected_CarZone(self):
         """
-        Request : POST - /reservations/123/photos
+        Request : POST - /carzones/123/info
         """
-        expected_count = 2
-        test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
-        test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
+        response = self.client.get(
+            f'/carzones/{self.zones[0].id}/info?date_time_start=202009261400&date_time_end=202009261440')
 
-        data = {'photos': [test_image_1, test_image_2]}
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response)
+        for entry, response_entry in zip(self.car_prices, response.data['cars']):
+            # 40분 요금 계산 : standard_price + weekday_price_per_ten_min
+            pay = entry.standard_price + entry.weekday_price_per_ten_min
+            self.assertEqual(pay, response_entry['term_price'])
 
-        response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
-        self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
+        for entry, response_entry in zip(self.cars, response.data['cars']):
+            self.assertTrue(response_entry['image'].endswith(entry.image.url))
+            self.assertEqual(entry.id, response_entry['id'])
+            self.assertEqual(entry.name, response_entry['name'])
+            self.assertEqual(entry.is_event_model, response_entry['is_event_model'])
+        self.fail()
+    # def test_should_create_multi_photos(self):
+    #     """
+    #     Request : POST - /reservations/123/photos
+    #     """
+    #     expected_count = 2
+    #     test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
+    #     test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
+    #
+    #     data = {'photos': [test_image_1, test_image_2]}
+    #
+    #     response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
+    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
+    #     self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
