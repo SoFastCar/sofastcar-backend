@@ -1,12 +1,10 @@
 # Create your views here.
 from rest_framework import mixins
-from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
-from cars.models import Car, PhotoBeforeUse
-from cars.serializers import CarSerializer, PhotoBeforeUseSerializer
-from reservations.models import Reservation
+from cars.models import Car, CarTimeTable
+from cars.serializers import CarSerializer, CarTimeTableSerializer
 
 
 class CarViewSet(mixins.RetrieveModelMixin,
@@ -21,17 +19,27 @@ class CarViewSet(mixins.RetrieveModelMixin,
         return super().filter_queryset(queryset)
 
 
-class PhotoBeforeUseViewSet(mixins.CreateModelMixin,
-                            GenericViewSet):
-    queryset = PhotoBeforeUse.objects.all()
-    serializer_class = PhotoBeforeUseSerializer
+class CarTimeTableViewSet(mixins.ListModelMixin,
+                          GenericViewSet):
+    queryset = CarTimeTable.objects.all()
+    serializer_class = CarTimeTableSerializer
     permission_classes = [IsAuthenticated, ]
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        queryset = queryset.filter(reservation_id=self.kwargs.get('reservation_pk'))
-        return queryset
+    def filter_queryset(self, queryset):
+        queryset = queryset.filter(car=self.kwargs.get('car_pk'))
+        return super().filter_queryset(queryset)
 
-    def perform_create(self, serializer):
-        reservation = get_object_or_404(Reservation, id=self.kwargs.get('reservation_pk'))
-        serializer.save(member=self.request.user, reservation=reservation)
+# class PhotoBeforeUseViewSet(mixins.CreateModelMixin,
+#                             GenericViewSet):
+#     queryset = PhotoBeforeUse.objects.all()
+#     serializer_class = PhotoBeforeUseSerializer
+#     permission_classes = [IsAuthenticated, ]
+#
+#     def get_queryset(self):
+#         queryset = super().get_queryset()
+#         queryset = queryset.filter(reservation_id=self.kwargs.get('reservation_pk'))
+#         return queryset
+#
+#     def perform_create(self, serializer):
+#         reservation = get_object_or_404(Reservation, id=self.kwargs.get('reservation_pk'))
+#         serializer.save(member=self.request.user, reservation=reservation)

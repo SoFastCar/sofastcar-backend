@@ -1,60 +1,30 @@
 from django.db import models
+from django.utils.translation import gettext as _
 
-from cars.models import Car
-from core.utils import insurance_price, car_rental_price
-from members.models import Member
-from payment.models import Payment
+# Create your models here.
 
 
 class Reservation(models.Model):
-    class Insurance(models.TextChoices):
-        SPECIAL = 'special'
-        STANDARD = 'standard'
-        LIGHT = 'light'
-        NONE = 'none'
+    class ChoiceInsuranceType(models.TextChoices):
+        SPECIAL = 'special', _('스페셜')
+        STANDARD = 'standard', _('스탠다드')
+        LIGHT = 'light', _('라이트')
 
-    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='reservations')
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='reservations')
-    payment = models.OneToOneField(Payment, null=True, blank=True, on_delete=models.CASCADE, related_name='reservation')
-    insurance = models.CharField(choices=Insurance.choices, default=Insurance.NONE, max_length=40)
-    from_when = models.DateTimeField()
-    to_when = models.DateTimeField()
-    is_extended = models.BooleanField(default=False)
-    extended_to_when = models.DateTimeField(null=True)
-    rental_date = models.DateTimeField(auto_now_add=True)  # update시 갱신 x
-    is_finished = models.BooleanField(default=False)  # payment 생성시 True 갱신
+    class ChoiceStatus(models.TextChoices):
+        NOTPAID = 'not_paid', _('결제전')
+        PAID = 'paid', _('결제완료')
+        USING = 'using', _('사용중')
+        EXTENDED = 'extended', _('추가연장')
+        FINISHED = 'finished', _('반납완료')
 
-    def time(self):
-        if self.is_extended:
-            time_minutes = (self.extended_to_when - self.from_when).total_seconds() / 60
-        elif not self.is_extended:
-            time_minutes = (self.to_when - self.from_when).total_seconds() / 60
-        return time_minutes
-
-    def rental_standard_credit(self):
-        price = car_rental_price(self.car.carprice.standard_price, self.from_when, self.to_when)
-        return price
-
-    def rental_insurance_credit(self):
-        insurance = insurance_price(self.insurance, self.from_when, self.to_when)
-        return insurance
-
-    def rental_credit(self):
-        return self.rental_standard_credit() + self.rental_insurance_credit()
-
-    def extended_standard_credit(self):
-        if self.is_extended:
-            price = car_rental_price(self.car.carprice.standard_price, self.to_when, self.extended_to_when)
-            return price
-        elif not self.is_extended:
-            return 0
-
-    def extended_insurance_credit(self):
-        if self.is_extended:
-            insurance = insurance_price(self.insurance, self.to_when, self.extended_to_when)
-            return insurance
-        elif not self.is_extended:
-            return 0
-
-    def extended_credit(self):
-        return self.extended_standard_credit() + self.extended_insurance_credit()
+    member = models.ForeignKey('members.Member', on_delete=models.CASCADE, related_name='reservations')
+    zone = models.ForeignKey('carzones.CarZone', on_delete=models.CASCADE, related_name='reservations')
+    car = models.ForeignKey('cars.Car', on_delete=models.CASCADE, related_name='reservations')
+    insurance = models.CharField(choices=ChoiceInsuranceType.choices.label, default=ChoiceInsuranceType.LIGHT,
+                                 help_text='차량손해면책상품')
+    date_start = models.DateTimeField(help_text='예약시작날짜시간')
+    date_end = models.DateTimeField(help_text='예약종료날짜시간')
+    date_extension = models.DateTimeField(default=date_end, help_text='연장종료날짜시간')
+    status = models.CharField(choices=ChoiceStatus.choices.label, default=ChoiceStatus.NOTPAID, help_text='대여진행상태')
+    created_at = models.DateTimeField(auto_now_add=True, help_text='TimeStamp')
+    updated_at = models.DateTimeField(auto_now=True)

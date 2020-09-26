@@ -1,5 +1,7 @@
+from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
+from prices.serializers import SummaryCarAndCarPriceSerializer
 from .models import CarZone
 
 
@@ -28,3 +30,13 @@ class CarZoneSerializer(ModelSerializer):
                             'detail_info',
                             'type',
                             'operating_time']
+
+
+class CarZonePricesSerializer(ModelSerializer):
+    cars = SummaryCarAndCarPriceSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = CarZone
+        fields = ['id', 'name', 'sub_info', 'type', 'cars']
+        read_only_fields = ['id', 'name', 'sub_info', 'type', 'cars']
+

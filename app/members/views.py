@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from members.models import Member, Profile, PhoneAuth
-from core.permissions import IsOwner, IsAnonymous
+from core.permissions import IsAnonymous, IsUserSelf
 from members.serializers import MembersSerializer, ChangePasswordSerializer, ProfileSerializer, PhoneAuthSerializer, \
     CheckAuthNumberSerializer
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
@@ -23,7 +23,7 @@ class MembersViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'change_password':
-            return [IsOwner()]
+            return [IsUserSelf()]
         return super().get_permissions()
 
     @action(methods=['put'], detail=True)

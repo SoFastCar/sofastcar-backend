@@ -5,29 +5,7 @@ import pytz
 from core.exceptions import NotValidInsuranceException, NotValidTimeFormatException, NotInTenMinutesException
 
 KST = pytz.timezone('Asia/Seoul')
-
-
-def insurance_price(insurance, from_when, to_when):
-    time = (to_when - from_when).total_seconds() / 60
-
-    if insurance == 'special':
-        insurance = int(round(6120 * time / 30, -1))
-    elif insurance == 'standard':
-        insurance = int(round(4370 * time / 30, -1))
-    elif insurance == 'light':
-        insurance = int(round(3510 * time / 30, -1))
-    elif insurance == 'none':
-        insurance = 0
-    else:
-        raise NotValidInsuranceException
-    return insurance
-
-
-# 예약시 결제 요금 = 기본요금 x 시간(분) / 30 값 반올림
-def car_rental_price(standard_price, from_when, to_when):
-    time = (to_when - from_when).total_seconds() / 60
-    rental_price = int(round(standard_price * time / 30, -2))
-    return rental_price
+UTC = pytz.utc
 
 
 # 주행거리에 따른 반납 결제 요금
@@ -65,3 +43,9 @@ def time_format(datetime_str):
     time = datetime.datetime(year, month, day, hour, minute)
     utc_time = time.replace(hour=time.hour - 9)  # UTC 기준으로 변경..
     return utc_time.astimezone(pytz.utc)  # naive -> aware 형식으로 변경
+
+
+def trans_kst_to_utc(iso_datetime_str):
+    datetime_format = datetime.datetime.fromisoformat(iso_datetime_str)
+    datetime_utc = datetime_format.replace(tzinfo=UTC, hour=datetime_format.hour - 9)
+    return datetime.datetime.isoformat(datetime_utc)
