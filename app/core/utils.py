@@ -5,7 +5,7 @@ import pytz
 from core.exceptions import NotValidInsuranceException, NotValidTimeFormatException, NotInTenMinutesException
 
 KST = pytz.timezone('Asia/Seoul')
-UTC = pytz.utc
+UTC = pytz.timezone('UTC')
 
 
 # 주행거리에 따른 반납 결제 요금
@@ -40,22 +40,26 @@ def time_format(datetime_str):
 
     if str(minute)[-1] != '0':
         raise NotInTenMinutesException
-    time = datetime.datetime(year, month, day, hour, minute)
-    utc_time = time.replace(hour=time.hour - 9)  # UTC 기준으로 변경..
-    return utc_time.astimezone(pytz.utc)  # naive -> aware 형식으로 변경
+    datetime_format = datetime.datetime(year, month, day, hour, minute)
+    utc_datetime = datetime_format - datetime.timedelta(hours=9)
+    utc_datetime = utc_datetime.replace(tzinfo=datetime.timezone.utc)
+
+    return utc_datetime
 
 
 def trans_kst_to_utc(iso_datetime_str):
     datetime_format = datetime.datetime.fromisoformat(iso_datetime_str)
-    datetime_utc = datetime_format.replace(tzinfo=UTC, hour=datetime_format.hour - 9)
-    return datetime.datetime.isoformat(datetime_utc)
+    utc_datetime = datetime_format - datetime.timedelta(hours=9)
+    utc_datetime = utc_datetime.replace(tzinfo=datetime.timezone.utc)
+    return datetime.datetime.isoformat(utc_datetime)
 
 
+# date_time_start YYYY-MM-DDT00:00:00
 def get_only_date_from_datetime(datetime_format):
     only_date = datetime_format.replace(hour=0, minute=0, second=0)
     return only_date
 
-
+# date_time_end YYYY-MM-DDT23:59:59
 def get_only_date_end_from_datetime(datetime_format):
     only_date = datetime_format.replace(hour=23, minute=59, second=59)
     return only_date

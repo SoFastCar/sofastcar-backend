@@ -7,8 +7,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
 
-from cars.models import Car
-from core.utils import time_format
 from .models import CarZone
 from .serializers import CarZoneSerializer, CarZonePricesSerializer
 

@@ -3,8 +3,8 @@ from rest_framework import mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
-from cars.models import Car, CarTimeTable
-from cars.serializers import CarSerializer, CarTimeTableSerializer
+from cars.models import Car
+from cars.serializers import CarSerializer
 
 
 class CarViewSet(mixins.RetrieveModelMixin,
@@ -16,17 +16,6 @@ class CarViewSet(mixins.RetrieveModelMixin,
 
     def filter_queryset(self, queryset):
         queryset = queryset.filter(zone=self.kwargs.get('carzone_pk'))
-        return super().filter_queryset(queryset)
-
-
-class CarTimeTableViewSet(mixins.ListModelMixin,
-                          GenericViewSet):
-    queryset = CarTimeTable.objects.all()
-    serializer_class = CarTimeTableSerializer
-    permission_classes = [IsAuthenticated, ]
-
-    def filter_queryset(self, queryset):
-        queryset = queryset.filter(car=self.kwargs.get('car_pk'))
         return super().filter_queryset(queryset)
 
 # class PhotoBeforeUseViewSet(mixins.CreateModelMixin,
