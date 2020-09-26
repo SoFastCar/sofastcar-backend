@@ -3,7 +3,7 @@ from django.contrib import admin
 # Register your models here.
 from import_export.admin import ImportExportMixin
 
-from cars.models import Car
+from cars.models import Car, CarTimeTable
 
 
 @admin.register(Car)
@@ -22,6 +22,11 @@ class CarAdmin(ImportExportMixin, admin.ModelAdmin):
                     'manual_page',
                     'safety_option',
                     'convenience_option',)
+
+
+@admin.register(CarTimeTable)
+class CarTimeTableAdmin(ImportExportMixin, admin.ModelAdmin):
+    list_display = ('id', 'zone', 'car', 'date_time_start', 'date_time_end')
 
 #
 # @admin.register(PhotoBeforeUse)
