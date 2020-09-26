@@ -44,11 +44,11 @@ class CarTestCase(APITestCase):
 
         # 테스트용 차량 스케쥴 2개
         self.schedule_1 = CarTimeTable.objects.create(car_id=self.cars[0].id, zone_id=self.zones[0].id,
-                                                      date_time_start='2020-09-26T12:00:00+00:00',
-                                                      date_time_end='2020-09-26T12:30:00+00:00')
+                                                      date_time_start='2020-09-26T16:00:00+00:00',
+                                                      date_time_end='2020-09-26T18:30:00+00:00')
         self.schedule_2 = CarTimeTable.objects.create(car_id=self.cars[0].id, zone_id=self.zones[0].id,
-                                                      date_time_start='2020-09-27T13:00:00+00:00',
-                                                      date_time_end='2020-09-27T14:00:00+00:00')
+                                                      date_time_start='2020-09-27T16:00:00+00:00',
+                                                      date_time_end='2020-09-27T19:00:00+00:00')
         self.schedules = [self.schedule_1, self.schedule_2]
 
         # 테스트용 차량 보험료 2개
@@ -162,12 +162,12 @@ class CarTestCase(APITestCase):
             self.assertEqual(special, response_entry['insurance_prices']['special'])
 
         # 날짜 조건에 맞는 time_table만 나오는지 검사
-        for response_entry in response.data['time_tables']:
-            self.assertEqual(self.schedule_1.id, response_entry['id'])
-            self.assertEqual(self.schedule_1.zone_id, response_entry['zone'])
-            self.assertEqual(self.schedule_1.car_id, response_entry['car'])
-            self.assertEqual(self.schedule_1.date_time_start, trans_kst_to_utc(response_entry['date_time_start']))
-            self.assertEqual(self.schedule_1.date_time_end, trans_kst_to_utc(response_entry['date_time_end']))
+        for entry, response_entry in zip(self.schedules, response.data['time_tables']):
+            self.assertEqual(entry.id, response_entry['id'])
+            self.assertEqual(entry.zone_id, response_entry['zone'])
+            self.assertEqual(entry.car_id, response_entry['car'])
+            self.assertEqual(entry.date_time_start, trans_kst_to_utc(response_entry['date_time_start']))
+            self.assertEqual(entry.date_time_end, trans_kst_to_utc(response_entry['date_time_end']))
 
     # def test_should_create_multi_photos(self):
     #     """

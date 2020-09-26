@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
 from cars.models import Car, CarTimeTable
-from core.utils import KST, time_format, UTC, get_only_date_from_datetime, get_only_date_end_from_datetime
+from core.utils import KST, time_format, get_only_date_from_datetime, get_only_date_end_from_datetime
 from prices.serializers import CarPriceDetailSerializer
 
 
@@ -50,8 +50,8 @@ class FilteredTimeTableListSerializer(serializers.ListSerializer):
     def to_representation(self, data):
         # trans str KST to datetime aware UTC format start-00:00:00 ~ end-23:59:59
         date_start = get_only_date_from_datetime(time_format(self.context.get('request').query_params.get('date_time_start')))
-        date_end = get_only_date_end_from_datetime(time_format(self.context.get('request').query_params.get('date_time_end')))
-        data = data.filter(date_time_start__gte=date_start, date_time_end__lte=date_end)
+        # date_end = get_only_date_end_from_datetime(time_format(self.context.get('request').query_params.get('date_time_end')))
+        data = data.filter(date_time_start__gte=date_start)
         return super(FilteredTimeTableListSerializer, self).to_representation(data)
 
 
