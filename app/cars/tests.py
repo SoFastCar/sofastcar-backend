@@ -169,22 +169,6 @@ class CarTestCase(APITestCase):
             self.assertEqual(self.schedule_1.date_time_start, trans_kst_to_utc(response_entry['date_time_start']))
             self.assertEqual(self.schedule_1.date_time_end, trans_kst_to_utc(response_entry['date_time_end']))
 
-    def test_should_list_CarTimeTables(self):
-        """
-        Request : GET - /carzones/123/cars/456/timetables
-        """
-
-        response = self.client.get(f'/carzones/{self.zones[0].id}/cars/{self.cars[0].id}/timetables')
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK, response)
-
-        for entry, response_entry in zip(self.schedules, response.data['results']):
-            self.assertEqual(entry.id, response_entry['id'])
-            self.assertEqual(entry.car_id, response_entry['car'])
-            # 원래 UTC 기준으로 시간이 맞는지 확인 DB : UTC, response : KST
-            self.assertEqual(entry.date_time_start, trans_kst_to_utc(response_entry['date_time_start']))
-            self.assertEqual(entry.date_time_end, trans_kst_to_utc(response_entry['date_time_end']))
-
     # def test_should_create_multi_photos(self):
     #     """
     #     Request : POST - /reservations/123/photos
