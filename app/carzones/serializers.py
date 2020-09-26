@@ -32,29 +32,11 @@ class CarZoneSerializer(ModelSerializer):
                             'operating_time']
 
 
-class SummaryCarZoneSerializer(ModelSerializer):
-    class Meta:
-        model = CarZone
-        fields = ['id', 'name', 'sub_info', 'type']
-        read_only_fields = ['id', 'name', 'sub_info', 'type']
-
-
 class CarZonePricesSerializer(ModelSerializer):
-    carzone = SummaryCarZoneSerializer(read_only=True)
     cars = SummaryCarAndCarPriceSerializer(many=True, read_only=True)
 
     class Meta:
         model = CarZone
-        fields = ['carzone', 'cars']
-        read_only_fields = ['carzone', 'cars']
-
-    def validate(self, attrs):
-        print('hello')
-        print(attrs)
-        return super().validate(attrs)
-
-    def create(self, validated_data):
-        print('me?')
-        return super().create(validated_data)
-
+        fields = ['id', 'name', 'sub_info', 'type', 'cars']
+        read_only_fields = ['id', 'name', 'sub_info', 'type', 'cars']
 

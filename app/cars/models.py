@@ -51,8 +51,11 @@ class Car(models.Model):
     safety_option = models.CharField(max_length=255, default='')
     convenience_option = models.CharField(max_length=255, default='')
 
-# class CarTimeTable(models.Model):
-#     date_time_start = models.DateTimeField()
+
+class CarTimeTable(models.Model):
+    car = models.ForeignKey('cars.Car', related_name='time_tables', on_delete=models.CASCADE)
+    date_time_start = models.DateTimeField()
+    date_time_end = models.DateTimeField()
 
 # class PhotoBeforeUse(models.Model):
 #     reservation = models.ForeignKey('reservations.Reservation', related_name='ready_photos', on_delete=models.CASCADE)

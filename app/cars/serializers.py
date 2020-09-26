@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
-from cars.models import Car
+from cars.models import Car, CarTimeTable
+from core.utils import KST
 from prices.serializers import CarPriceDetailSerializer
 
 
@@ -42,6 +43,18 @@ class CarSerializer(ModelSerializer):
                             'convenience_option',
                             'car_prices',
                             ]
+
+
+class CarTimeTableSerializer(ModelSerializer):
+    # response : car_pk에 해당하는 시간표 한국시간대로 표기
+    date_time_start = serializers.DateTimeField(read_only=True, default_timezone=KST)
+    date_time_end = serializers.DateTimeField(read_only=True, default_timezone=KST)
+
+    class Meta:
+        model = CarTimeTable
+        fields = ['id', 'car', 'date_time_start', 'date_time_end']
+        read_only_fields = ['id', 'car']
+
 
 # class PhotoBeforeUseSerializer(serializers.ModelSerializer):
 #     photos = serializers.ListField(child=serializers.ImageField(), write_only=True)
