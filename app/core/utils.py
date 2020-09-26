@@ -5,7 +5,6 @@ import pytz
 from core.exceptions import NotValidInsuranceException, NotValidTimeFormatException, NotInTenMinutesException
 
 KST = pytz.timezone('Asia/Seoul')
-UTC = pytz.timezone('UTC')
 
 
 # 주행거리에 따른 반납 결제 요금
@@ -54,12 +53,12 @@ def trans_kst_to_utc(iso_datetime_str):
     return datetime.datetime.isoformat(utc_datetime)
 
 
-# date_time_start YYYY-MM-DDT00:00:00
+# date_time_start YYYY-MM-DDT15:00:00 (UTC) == YYYY-MM-DDT00:00:00 (KST)
 def get_only_date_from_datetime(datetime_format):
-    only_date = datetime_format.replace(hour=0, minute=0, second=0)
+    only_date = datetime_format.replace(hour=15, minute=0, second=0)
     return only_date
 
-# date_time_end YYYY-MM-DDT23:59:59
+# date_time_end YYYY-MM-DDT14:59:59 (UTC) == YYYY-MM-DDT23:59:59 (KST)
 def get_only_date_end_from_datetime(datetime_format):
-    only_date = datetime_format.replace(hour=23, minute=59, second=59)
+    only_date = datetime_format.replace(hour=14, minute=59, second=59)
     return only_date
