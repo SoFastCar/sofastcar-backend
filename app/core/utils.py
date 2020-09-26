@@ -49,3 +49,13 @@ def trans_kst_to_utc(iso_datetime_str):
     datetime_format = datetime.datetime.fromisoformat(iso_datetime_str)
     datetime_utc = datetime_format.replace(tzinfo=UTC, hour=datetime_format.hour - 9)
     return datetime.datetime.isoformat(datetime_utc)
+
+
+def get_only_date_from_datetime(datetime_format):
+    only_date = datetime_format.replace(hour=0, minute=0, second=0)
+    return only_date
+
+
+def get_only_date_end_from_datetime(datetime_format):
+    only_date = datetime_format.replace(hour=23, minute=59, second=59)
+    return only_date

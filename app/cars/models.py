@@ -53,6 +53,7 @@ class Car(models.Model):
 
 
 class CarTimeTable(models.Model):
+    zone = models.ForeignKey('carzones.CarZone', related_name='time_tables', on_delete=models.CASCADE)
     car = models.ForeignKey('cars.Car', related_name='time_tables', on_delete=models.CASCADE)
     date_time_start = models.DateTimeField()
     date_time_end = models.DateTimeField()
