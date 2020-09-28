@@ -161,7 +161,7 @@ class CarTestCase(APITestCase):
             self.assertEqual(standard, response_entry['insurance_prices']['standard'])
             self.assertEqual(special, response_entry['insurance_prices']['special'])
 
-        # 날짜 조건에 맞는 time_table만 나오는지 검사
+        # time_table 검사
         for entry, response_entry in zip(self.schedules, response.data['time_tables']):
             self.assertEqual(entry.id, response_entry['id'])
             self.assertEqual(entry.zone_id, response_entry['zone'])

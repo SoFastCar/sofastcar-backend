@@ -84,7 +84,7 @@ class Profile(models.Model):
                                   )
     name = models.CharField(max_length=10)
     image = models.ImageField(null=True)
-    credit_point = models.IntegerField(default=100_000)
+    credit_point = models.PositiveIntegerField(default=100_000)
 
 
 class PhoneAuth(models.Model):
