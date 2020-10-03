@@ -1,8 +1,8 @@
 from django.db import models, transaction
 from django.utils.translation import gettext as _
 
-
 # Create your models here.
+from cars.models import CarTimeTable
 from payments.models import PaymentBeforeUse
 
 
@@ -65,6 +65,7 @@ class Reservation(models.Model):
 
             # Reservation save()
             super().save(force_insert, force_update, using, update_fields)
+
             if is_extension:
                 # Extension Status save
                 extension_status = ReservationStatus.objects.get(reservation_id=self.id)
@@ -76,15 +77,28 @@ class Reservation(models.Model):
                 pay.extension_fee = total_fee
                 pay.total_fee = total_fee + pay.extension_fee
                 pay.save()
+
+                # Extension TimeTable save
+                timetable = CarTimeTable.objects.get(zone_id=self.zone_id,
+                                                     car_id=self.car_id,
+                                                     date_time_start=self.date_time_start)
+                timetable.date_time_end = self.date_time_extension
+                timetable.save()
             else:
                 # paid_1 Status save
                 ReservationStatus.objects.create(reservation_id=self.id,
                                                  status=ReservationStatus.ChoiceStatus.PAID_1)
+                # Payment report save
                 PaymentBeforeUse.objects.create(reservation_id=self.id,
                                                 member=self.member,
                                                 rental_fee=car_rental_price,
                                                 insurance_fee=insurance_price,
                                                 total_fee=total_fee)
+                # CarTimeTable save
+                CarTimeTable.objects.create(zone_id=self.zone_id,
+                                            car_id=self.car_id,
+                                            date_time_start=self.date_time_start,
+                                            date_time_end=self.date_time_end)
 
 
 class ReservationStatus(models.Model):

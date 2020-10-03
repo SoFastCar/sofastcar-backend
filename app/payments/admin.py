@@ -10,6 +10,7 @@ from payments.models import PaymentBeforeUse, PaymentAfterUse, TollFee
 class PaymentBeforeUseAdmin(ImportExportMixin, admin.ModelAdmin):
     list_display = ('id',
                     'reservation',
+                    'member',
                     'rental_fee',
                     'insurance_fee',
                     'coupon_discount',
@@ -22,6 +23,7 @@ class PaymentBeforeUseAdmin(ImportExportMixin, admin.ModelAdmin):
 @admin.register(PaymentAfterUse)
 class PaymentAfterUseAdmin(ImportExportMixin, admin.ModelAdmin):
     list_display = ('id',
+                    'member',
                     'driving_distance',
                     'first_section_fee',
                     'second_section_fee',
@@ -36,6 +38,7 @@ class PaymentAfterUseAdmin(ImportExportMixin, admin.ModelAdmin):
 class TollFeeAdmin(ImportExportMixin, admin.ModelAdmin):
     list_display = ('id',
                     'reservation',
+                    'member',
                     'toll_gate',
                     'toll_fee',
                     'created_at')
