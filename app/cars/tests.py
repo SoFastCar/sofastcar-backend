@@ -215,6 +215,7 @@ class CarTestCase(APITestCase):
                                                  date_time_start=test_date_time_start,
                                                  date_time_end=test_date_time_end)
         response = self.client.get(f'/reservations/{reservation.id}')
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(self.zones[0].id, response.data['zone'])
         self.assertEqual(self.cars[0].id, response.data['car'])
@@ -222,8 +223,33 @@ class CarTestCase(APITestCase):
         self.assertEqual(str(test_date_time_start.astimezone(KST)).replace(' ', 'T'), response.data['date_time_start'])
         self.assertEqual(str(test_date_time_end.astimezone(KST)).replace(' ', 'T'), response.data['date_time_end'])
 
-        # self.assertEqual(strftime(test_date_time_end, '%Y-%m-%dT%H:%M:%S%z').replace('+0000', 'Z'),
-        #                  response.data['date_time_end'])
+    def test_should_list_Reservations_owner_only(self):
+        user2 = Member.objects.create(email='test2@example.com',
+                                      password='test2')
+        reservations_user = baker.make('reservations.Reservation',
+                                       member=self.user,
+                                       car_id=self.cars[0].id,
+                                       zone_id=self.zones[0].id,
+                                       _quantity=2)
+        reservations_user2 = baker.make('reservations.Reservation',
+                                        member=user2,
+                                        car_id=self.cars[0].id,
+                                        zone_id=self.zones[0].id,
+                                        _quantity=2)
+
+        response = self.client.get(f'/reservations')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for entry, response_entry in zip(reservations_user, response.data['results']):
+            self.assertEqual(entry.id, response_entry['id'])
+            self.assertEqual(entry.member.id, response_entry['member'])
+            self.assertEqual(entry.car.id, response_entry['car'])
+            self.assertEqual(entry.zone.id, response_entry['zone'])
+            self.assertEqual(entry.insurance, response_entry['insurance'])
+            self.assertEqual(str(entry.date_time_start.astimezone(KST)).replace(' ', 'T'),
+                             response_entry['date_time_start'])
+            self.assertEqual(str(entry.date_time_end.astimezone(KST)).replace(' ', 'T'),
+                             response_entry['date_time_end'])
         # def test_should_create_multi_photos(self):
         #     """
         #     Request : POST - /reservations/123/photos
