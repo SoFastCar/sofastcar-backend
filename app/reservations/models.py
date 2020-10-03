@@ -81,6 +81,7 @@ class Reservation(models.Model):
                 ReservationStatus.objects.create(reservation_id=self.id,
                                                  status=ReservationStatus.ChoiceStatus.PAID_1)
                 PaymentBeforeUse.objects.create(reservation_id=self.id,
+                                                member=self.member,
                                                 rental_fee=car_rental_price,
                                                 insurance_fee=insurance_price,
                                                 total_fee=total_fee)

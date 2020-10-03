@@ -62,7 +62,6 @@ class CarTestCase(APITestCase):
                                                        standard_price=20, standard_price_per_ten_min=2,
                                                        special_price=30, special_price_per_ten_min=3)
         self.insurances = [self.insurance_1, self.insurance_2]
-        # self.reservations = baker.make('reservations.Reservation', member=self.user, _quantity=2)
         self.client.force_authenticate(user=self.user)
 
     def test_should_list_Cars_and_CarPrices(self):
@@ -250,6 +249,31 @@ class CarTestCase(APITestCase):
                              response_entry['date_time_start'])
             self.assertEqual(str(entry.date_time_end.astimezone(KST)).replace(' ', 'T'),
                              response_entry['date_time_end'])
+
+    def test_should_retrieve_PaymentBeforeUse(self):
+        expected_insurance = 'special'
+        test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
+        test_date_time_end = datetime.datetime(2020, 10, 20, 19, 40, tzinfo=datetime.timezone.utc)
+        reservation = Reservation.objects.create(car_id=self.cars[0].id,
+                                                 zone_id=self.zones[0].id,
+                                                 member_id=self.user.id,
+                                                 insurance=expected_insurance,
+                                                 date_time_start=test_date_time_start,
+                                                 date_time_end=test_date_time_end)
+        response = self.client.get(f'/reservations/{reservation.id}/payment_before')
+
+        entry = PaymentBeforeUse.objects.get(reservation_id=reservation.id)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(entry.id, response.data['results'][0]['id'])
+        self.assertEqual(entry.member.id, response.data['results'][0]['member'])
+        self.assertEqual(entry.reservation.id, response.data['results'][0]['reservation'])
+        self.assertEqual(entry.rental_fee, response.data['results'][0]['rental_fee'])
+        self.assertEqual(entry.insurance_fee, response.data['results'][0]['insurance_fee'])
+        self.assertEqual(entry.coupon_discount, response.data['results'][0]['coupon_discount'])
+        self.assertEqual(entry.etc_discount, response.data['results'][0]['etc_discount'])
+        self.assertEqual(entry.extension_fee, response.data['results'][0]['extension_fee'])
+        self.assertEqual(entry.total_fee, response.data['results'][0]['total_fee'])
         # def test_should_create_multi_photos(self):
         #     """
         #     Request : POST - /reservations/123/photos
