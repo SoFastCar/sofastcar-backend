@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
 from cars.models import Car
+from core.utils import KST
 from members.models import Member
 from reservations.models import Reservation
 
@@ -82,3 +83,29 @@ class ReservationSerializer(ModelSerializer):
 
     def update(self, instance, validated_data):
         return super().update(instance, validated_data)
+
+
+class ReservationHistorySerializer(ModelSerializer):
+    date_time_start = serializers.DateTimeField(read_only=True, default_timezone=KST)
+    date_time_end = serializers.DateTimeField(read_only=True, default_timezone=KST)
+
+    class Meta:
+        model = Reservation
+        fields = ['id',
+                  'member',
+                  'car',
+                  'zone',
+                  'insurance',
+                  'date_time_start',
+                  'date_time_end',
+                  'created_at',
+                  'updated_at']
+        read_only_fields = ['id',
+                            'member',
+                            'car',
+                            'zone',
+                            'insurance',
+                            'date_time_start',
+                            'date_time_end',
+                            'created_at',
+                            'updated_at']

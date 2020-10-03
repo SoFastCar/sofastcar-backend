@@ -9,11 +9,10 @@ from cars.models import Car
 from carzones.models import CarZone
 from core.permissions import IsOwner
 from reservations.models import Reservation
-from reservations.serializers import ReservationSerializer
+from reservations.serializers import ReservationSerializer, ReservationHistorySerializer
 
 
 class ReservationViewSet(mixins.CreateModelMixin,
-                         mixins.RetrieveModelMixin,
                          mixins.UpdateModelMixin,
                          GenericViewSet):
     queryset = Reservation.objects.all()
@@ -28,3 +27,13 @@ class ReservationViewSet(mixins.CreateModelMixin,
                         car_id=self.kwargs.get('car_pk'))
 
 
+class ReservationHistoryViewSet(mixins.RetrieveModelMixin,
+                                mixins.ListModelMixin,
+                                GenericViewSet):
+    queryset = Reservation.objects.all()
+    serializer_class = ReservationHistorySerializer
+    permission_classes = [IsOwner, ]
+
+    def filter_queryset(self, queryset):
+        queryset = queryset.filter(member=self.request.user)
+        return super().filter_queryset(queryset)

@@ -8,7 +8,7 @@ from cars.views import CarViewSet
 from carzones.views import CarZoneViewSet
 from events.views import EventPhotoViewSet
 from members.views import MembersViewSet, ProfileViewSet, PhoneAuthViewSet
-from reservations.views import ReservationViewSet
+from reservations.views import ReservationViewSet, ReservationHistoryViewSet
 
 router = SimpleRouter(trailing_slash=False)
 router.register('members', MembersViewSet)
@@ -16,6 +16,7 @@ router.register('profile', ProfileViewSet)
 router.register('carzones', CarZoneViewSet)
 router.register('phone_auth', PhoneAuthViewSet)
 router.register('event_photos', EventPhotoViewSet)
+router.register('reservations', ReservationHistoryViewSet)
 
 """
 carzones/123/cars

@@ -52,7 +52,6 @@ def trans_kst_to_utc(iso_datetime_str):
     utc_datetime = utc_datetime.replace(tzinfo=datetime.timezone.utc)
     return datetime.datetime.isoformat(utc_datetime)
 
-
 # date_time_start YYYY-MM-DDT15:00:00 (UTC) == YYYY-MM-DDT00:00:00 (KST)
 def get_only_date_from_datetime(datetime_format):
     only_date = datetime_format.replace(hour=15, minute=0, second=0)

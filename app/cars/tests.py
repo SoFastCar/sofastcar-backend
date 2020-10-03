@@ -2,7 +2,6 @@ import datetime
 import io
 
 from PIL import Image
-from django.test import TestCase
 
 # Create your tests here.
 from model_bakery import baker
@@ -11,11 +10,11 @@ from rest_framework.test import APITestCase
 
 # from cars.models import PhotoBeforeUse
 from cars.models import CarTimeTable
-from core.utils import trans_kst_to_utc
+from core.utils import trans_kst_to_utc, KST
 from members.models import Member
 from payments.models import PaymentBeforeUse
 from prices.models import InsuranceFee
-from reservations.models import ReservationStatus
+from reservations.models import ReservationStatus, Reservation
 
 
 class ImageMaker:
@@ -205,16 +204,36 @@ class CarTestCase(APITestCase):
         default_credit = 100000
         self.assertEqual(default_credit - rental_fee - insurance_fee, self.user.profile.credit_point)
 
-    # def test_should_create_multi_photos(self):
-    #     """
-    #     Request : POST - /reservations/123/photos
-    #     """
-    #     expected_count = 2
-    #     test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
-    #     test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
-    #
-    #     data = {'photos': [test_image_1, test_image_2]}
-    #
-    #     response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
-    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
-    #     self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
+    def test_should_retrieve_Reservation(self):
+        expected_insurance = 'special'
+        test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
+        test_date_time_end = datetime.datetime(2020, 10, 20, 20, 0, tzinfo=datetime.timezone.utc)
+        reservation = Reservation.objects.create(car_id=self.cars[0].id,
+                                                 zone_id=self.zones[0].id,
+                                                 member_id=self.user.id,
+                                                 insurance=expected_insurance,
+                                                 date_time_start=test_date_time_start,
+                                                 date_time_end=test_date_time_end)
+        response = self.client.get(f'/reservations/{reservation.id}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.zones[0].id, response.data['zone'])
+        self.assertEqual(self.cars[0].id, response.data['car'])
+        self.assertEqual(expected_insurance, response.data['insurance'])
+        self.assertEqual(str(test_date_time_start.astimezone(KST)).replace(' ', 'T'), response.data['date_time_start'])
+        self.assertEqual(str(test_date_time_end.astimezone(KST)).replace(' ', 'T'), response.data['date_time_end'])
+
+        # self.assertEqual(strftime(test_date_time_end, '%Y-%m-%dT%H:%M:%S%z').replace('+0000', 'Z'),
+        #                  response.data['date_time_end'])
+        # def test_should_create_multi_photos(self):
+        #     """
+        #     Request : POST - /reservations/123/photos
+        #     """
+        #     expected_count = 2
+        #     test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
+        #     test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
+        #
+        #     data = {'photos': [test_image_1, test_image_2]}
+        #
+        #     response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
+        #     self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
+        #     self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
