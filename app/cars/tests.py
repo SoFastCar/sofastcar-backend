@@ -13,7 +13,9 @@ from rest_framework.test import APITestCase
 from cars.models import CarTimeTable
 from core.utils import trans_kst_to_utc
 from members.models import Member
+from payments.models import PaymentBeforeUse
 from prices.models import InsuranceFee
+from reservations.models import ReservationStatus
 
 
 class ImageMaker:
@@ -168,6 +170,40 @@ class CarTestCase(APITestCase):
             self.assertEqual(entry.car_id, response_entry['car'])
             self.assertEqual(entry.date_time_start, trans_kst_to_utc(response_entry['date_time_start']))
             self.assertEqual(entry.date_time_end, trans_kst_to_utc(response_entry['date_time_end']))
+
+    def test_should_create_Reservation(self):
+        """
+        Request : POST - /carzones/123/cars/456/reservations
+        """
+        expected_status = ReservationStatus.ChoiceStatus.PAID_1.value
+        # 미래 시간으로 data 테스트
+        data = {'date_time_start': '2020-10-05T21:00:00Z',
+                'date_time_end': '2020-10-05T21:40:00Z',
+                'insurance': 'light'}
+
+        response = self.client.post(f'/carzones/{self.zones[0].id}/cars/{self.cars[0].id}/reservations', data=data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(str(self.zones[0].id), response.data['zone'])
+        self.assertEqual(str(self.cars[0].id), response.data['car'])
+        self.assertEqual(data['insurance'], response.data['insurance'])
+        self.assertEqual(data['date_time_start'], response.data['date_time_start'])
+        self.assertEqual(data['date_time_end'], response.data['date_time_end'])
+        # Status Check
+        self.assertTrue(ReservationStatus.objects.filter(reservation_id=response.data['id']).exists())
+        self.assertEqual(expected_status,
+                         ReservationStatus.objects.get(reservation_id=response.data['id']).status)
+        # Payment Check
+        self.assertTrue(PaymentBeforeUse.objects.filter(reservation_id=response.data['id']).exists())
+        rental_fee = self.car_price_1.standard_price + self.car_price_1.weekday_price_per_ten_min
+        insurance_fee = self.insurance_1.light_price + self.insurance_1.light_price_per_ten_min
+        self.assertEqual(rental_fee, PaymentBeforeUse.objects.get(reservation_id=response.data['id']).rental_fee)
+        self.assertEqual(insurance_fee, PaymentBeforeUse.objects.get(reservation_id=response.data['id']).insurance_fee)
+        self.assertEqual(rental_fee + insurance_fee,
+                         PaymentBeforeUse.objects.get(reservation_id=response.data['id']).total_fee)
+        # Credit Check
+        default_credit = 100000
+        self.assertEqual(default_credit - rental_fee - insurance_fee, self.user.profile.credit_point)
 
     # def test_should_create_multi_photos(self):
     #     """
