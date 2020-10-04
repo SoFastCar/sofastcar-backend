@@ -20,13 +20,18 @@ class CarPrice(models.Model):
     weekday_price_per_ten_min = models.PositiveIntegerField(default=0)
     weekend_price_per_ten_min = models.PositiveIntegerField(default=0)
 
-    # def is_weekend(self):
     def str_to_date_time_UTC(self, str_date_time):
         return time_format(str_date_time)
 
     def get_price(self, date_time_start, date_time_end):
         date_time_start = self.str_to_date_time_UTC(date_time_start)
         date_time_end = self.str_to_date_time_UTC(date_time_end)
+        total_minutes = (date_time_end - date_time_start).total_seconds() / 60
+        count_ten_minutes = (total_minutes - 30) / 10
+        rental_price = int(self.standard_price + count_ten_minutes * self.weekday_price_per_ten_min)
+        return rental_price
+
+    def get_price_from_iso_format(self, date_time_start, date_time_end):
         total_minutes = (date_time_end - date_time_start).total_seconds() / 60
         count_ten_minutes = (total_minutes - 30) / 10
         rental_price = int(self.standard_price + count_ten_minutes * self.weekday_price_per_ten_min)
@@ -58,6 +63,12 @@ class InsuranceFee(models.Model):
         rental_price = int(self.light_price + count_ten_minutes * self.light_price_per_ten_min)
         return rental_price
 
+    def get_light_price_from_iso_format(self, date_time_start, date_time_end):
+        total_minutes = (date_time_end - date_time_start).total_seconds() / 60
+        count_ten_minutes = (total_minutes - 30) / 10
+        rental_price = int(self.light_price + count_ten_minutes * self.light_price_per_ten_min)
+        return rental_price
+
     def get_standard_price(self, date_time_start, date_time_end):
         date_time_start = self.str_to_date_time_UTC(date_time_start)
         date_time_end = self.str_to_date_time_UTC(date_time_end)
@@ -66,9 +77,21 @@ class InsuranceFee(models.Model):
         rental_price = int(self.standard_price + count_ten_minutes * self.standard_price_per_ten_min)
         return rental_price
 
+    def get_standard_price_from_iso_format(self, date_time_start, date_time_end):
+        total_minutes = (date_time_end - date_time_start).total_seconds() / 60
+        count_ten_minutes = (total_minutes - 30) / 10
+        rental_price = int(self.standard_price + count_ten_minutes * self.standard_price_per_ten_min)
+        return rental_price
+
     def get_special_price(self, date_time_start, date_time_end):
         date_time_start = self.str_to_date_time_UTC(date_time_start)
         date_time_end = self.str_to_date_time_UTC(date_time_end)
+        total_minutes = (date_time_end - date_time_start).total_seconds() / 60
+        count_ten_minutes = (total_minutes - 30) / 10
+        rental_price = int(self.special_price + count_ten_minutes * self.special_price_per_ten_min)
+        return rental_price
+
+    def get_special_price_from_iso_format(self, date_time_start, date_time_end):
         total_minutes = (date_time_end - date_time_start).total_seconds() / 60
         count_ten_minutes = (total_minutes - 30) / 10
         rental_price = int(self.special_price + count_ten_minutes * self.special_price_per_ten_min)

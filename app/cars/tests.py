@@ -2,7 +2,6 @@ import datetime
 import io
 
 from PIL import Image
-from django.test import TestCase
 
 # Create your tests here.
 from model_bakery import baker
@@ -11,9 +10,11 @@ from rest_framework.test import APITestCase
 
 # from cars.models import PhotoBeforeUse
 from cars.models import CarTimeTable
-from core.utils import trans_kst_to_utc
+from core.utils import trans_kst_to_utc, KST
 from members.models import Member
+from payments.models import PaymentBeforeUse
 from prices.models import InsuranceFee
+from reservations.models import ReservationStatus, Reservation
 
 
 class ImageMaker:
@@ -61,7 +62,6 @@ class CarTestCase(APITestCase):
                                                        standard_price=20, standard_price_per_ten_min=2,
                                                        special_price=30, special_price_per_ten_min=3)
         self.insurances = [self.insurance_1, self.insurance_2]
-        # self.reservations = baker.make('reservations.Reservation', member=self.user, _quantity=2)
         self.client.force_authenticate(user=self.user)
 
     def test_should_list_Cars_and_CarPrices(self):
@@ -169,16 +169,121 @@ class CarTestCase(APITestCase):
             self.assertEqual(entry.date_time_start, trans_kst_to_utc(response_entry['date_time_start']))
             self.assertEqual(entry.date_time_end, trans_kst_to_utc(response_entry['date_time_end']))
 
-    # def test_should_create_multi_photos(self):
-    #     """
-    #     Request : POST - /reservations/123/photos
-    #     """
-    #     expected_count = 2
-    #     test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
-    #     test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
-    #
-    #     data = {'photos': [test_image_1, test_image_2]}
-    #
-    #     response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
-    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
-    #     self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
+    def test_should_create_Reservation(self):
+        """
+        Request : POST - /carzones/123/cars/456/reservations
+        """
+        expected_status = ReservationStatus.ChoiceStatus.PAID_1.value
+        # 미래 시간으로 data 테스트
+        data = {'date_time_start': '2020-10-05T21:00:00Z',
+                'date_time_end': '2020-10-05T21:40:00Z',
+                'insurance': 'light'}
+
+        response = self.client.post(f'/carzones/{self.zones[0].id}/cars/{self.cars[0].id}/reservations', data=data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(str(self.zones[0].id), response.data['zone'])
+        self.assertEqual(str(self.cars[0].id), response.data['car'])
+        self.assertEqual(data['insurance'], response.data['insurance'])
+        self.assertEqual(data['date_time_start'], response.data['date_time_start'])
+        self.assertEqual(data['date_time_end'], response.data['date_time_end'])
+        # Status Check
+        self.assertTrue(ReservationStatus.objects.filter(reservation_id=response.data['id']).exists())
+        self.assertEqual(expected_status,
+                         ReservationStatus.objects.get(reservation_id=response.data['id']).status)
+        # Payment Check
+        self.assertTrue(PaymentBeforeUse.objects.filter(reservation_id=response.data['id']).exists())
+        rental_fee = self.car_price_1.standard_price + self.car_price_1.weekday_price_per_ten_min
+        insurance_fee = self.insurance_1.light_price + self.insurance_1.light_price_per_ten_min
+        self.assertEqual(rental_fee, PaymentBeforeUse.objects.get(reservation_id=response.data['id']).rental_fee)
+        self.assertEqual(insurance_fee, PaymentBeforeUse.objects.get(reservation_id=response.data['id']).insurance_fee)
+        self.assertEqual(rental_fee + insurance_fee,
+                         PaymentBeforeUse.objects.get(reservation_id=response.data['id']).total_fee)
+        # Credit Check
+        default_credit = 100000
+        self.assertEqual(default_credit - rental_fee - insurance_fee, self.user.profile.credit_point)
+
+    def test_should_retrieve_Reservation(self):
+        expected_insurance = 'special'
+        test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
+        test_date_time_end = datetime.datetime(2020, 10, 20, 20, 0, tzinfo=datetime.timezone.utc)
+        reservation = Reservation.objects.create(car_id=self.cars[0].id,
+                                                 zone_id=self.zones[0].id,
+                                                 member_id=self.user.id,
+                                                 insurance=expected_insurance,
+                                                 date_time_start=test_date_time_start,
+                                                 date_time_end=test_date_time_end)
+        response = self.client.get(f'/reservations/{reservation.id}')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.zones[0].id, response.data['zone'])
+        self.assertEqual(self.cars[0].id, response.data['car'])
+        self.assertEqual(expected_insurance, response.data['insurance'])
+        self.assertEqual(str(test_date_time_start.astimezone(KST)).replace(' ', 'T'), response.data['date_time_start'])
+        self.assertEqual(str(test_date_time_end.astimezone(KST)).replace(' ', 'T'), response.data['date_time_end'])
+
+    def test_should_list_Reservations_owner_only(self):
+        user2 = Member.objects.create(email='test2@example.com',
+                                      password='test2')
+        reservations_user = baker.make('reservations.Reservation',
+                                       member=self.user,
+                                       car_id=self.cars[0].id,
+                                       zone_id=self.zones[0].id,
+                                       _quantity=2)
+        reservations_user2 = baker.make('reservations.Reservation',
+                                        member=user2,
+                                        car_id=self.cars[0].id,
+                                        zone_id=self.zones[0].id,
+                                        _quantity=2)
+
+        response = self.client.get(f'/reservations')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for entry, response_entry in zip(reservations_user, response.data['results']):
+            self.assertEqual(entry.id, response_entry['id'])
+            self.assertEqual(entry.member.id, response_entry['member'])
+            self.assertEqual(entry.car.id, response_entry['car'])
+            self.assertEqual(entry.zone.id, response_entry['zone'])
+            self.assertEqual(entry.insurance, response_entry['insurance'])
+            self.assertEqual(str(entry.date_time_start.astimezone(KST)).replace(' ', 'T'),
+                             response_entry['date_time_start'])
+            self.assertEqual(str(entry.date_time_end.astimezone(KST)).replace(' ', 'T'),
+                             response_entry['date_time_end'])
+
+    def test_should_retrieve_PaymentBeforeUse(self):
+        expected_insurance = 'special'
+        test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
+        test_date_time_end = datetime.datetime(2020, 10, 20, 19, 40, tzinfo=datetime.timezone.utc)
+        reservation = Reservation.objects.create(car_id=self.cars[0].id,
+                                                 zone_id=self.zones[0].id,
+                                                 member_id=self.user.id,
+                                                 insurance=expected_insurance,
+                                                 date_time_start=test_date_time_start,
+                                                 date_time_end=test_date_time_end)
+        response = self.client.get(f'/reservations/{reservation.id}/payment_before')
+
+        entry = PaymentBeforeUse.objects.get(reservation_id=reservation.id)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(entry.id, response.data['results'][0]['id'])
+        self.assertEqual(entry.member.id, response.data['results'][0]['member'])
+        self.assertEqual(entry.reservation.id, response.data['results'][0]['reservation'])
+        self.assertEqual(entry.rental_fee, response.data['results'][0]['rental_fee'])
+        self.assertEqual(entry.insurance_fee, response.data['results'][0]['insurance_fee'])
+        self.assertEqual(entry.coupon_discount, response.data['results'][0]['coupon_discount'])
+        self.assertEqual(entry.etc_discount, response.data['results'][0]['etc_discount'])
+        self.assertEqual(entry.extension_fee, response.data['results'][0]['extension_fee'])
+        self.assertEqual(entry.total_fee, response.data['results'][0]['total_fee'])
+        # def test_should_create_multi_photos(self):
+        #     """
+        #     Request : POST - /reservations/123/photos
+        #     """
+        #     expected_count = 2
+        #     test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
+        #     test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
+        #
+        #     data = {'photos': [test_image_1, test_image_2]}
+        #
+        #     response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
+        #     self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
+        #     self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
