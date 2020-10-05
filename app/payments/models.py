@@ -1,7 +1,11 @@
-from django.db import models
-
+from django.db import models, transaction
 
 # Create your models here.
+from django.db.models import F
+
+from members.models import Profile
+
+
 class PaymentBeforeUse(models.Model):
     reservation = models.OneToOneField('reservations.Reservation', on_delete=models.CASCADE,
                                        related_name='payment_before')
@@ -30,7 +34,16 @@ class PaymentAfterUse(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        super().save(force_insert, force_update, using, update_fields)
+        with transaction.atomic():
+            # blance
+            Profile.objects.filter(member_id=self.member.id).update(credit_point=F('credit_point') - self.total_fee)
+
+            # PaymentAfterUse save
+            super().save(force_insert, force_update, using, update_fields)
+
+            # paid_2 Status save
+            self.reservation.status.status = self.reservation.status.ChoiceStatus.PAID_2
+            self.reservation.status.save()
 
 
 class TollFee(models.Model):

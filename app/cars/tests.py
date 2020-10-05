@@ -129,11 +129,12 @@ class CarTestCase(APITestCase):
 
     def test_should_retrieve_Cars_and_CarPrices(self):
         """
-        Request : GET - /carzones/123/cars/456
+        Request : GET - /carzones/123/cars/456??date_time_start=202009261400&date_time_end=202009261440
         """
-        response = self.client.get(f'/carzones/{self.zones[0].id}/cars/{self.cars[0].id}')
+        response = self.client.get(f'/carzones/{self.zones[0].id}/cars/{self.cars[0].id}?date_time_start'
+                                   f'=202009261400&date_time_end=202009261440')
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
         self.assertEqual(self.cars[0].id, response.data['id'])
         self.assertEqual(self.cars[0].name, response.data['name'])
@@ -154,6 +155,15 @@ class CarTestCase(APITestCase):
         self.assertEqual(self.car_price_1.min_price_per_km, response.data['car_prices']['min_price_per_km'])
         self.assertEqual(self.car_price_1.mid_price_per_km, response.data['car_prices']['mid_price_per_km'])
         self.assertEqual(self.car_price_1.max_price_per_km, response.data['car_prices']['max_price_per_km'])
+        # 입력한 기간에 따른 가격
+        self.assertEqual(self.cars[0].carprice.standard_price + self.cars[0].carprice.weekday_price_per_ten_min,
+                         response.data['term_price'])
+        self.assertEqual(self.cars[0].insurances.light_price + self.cars[0].insurances.light_price_per_ten_min,
+                         response.data['insurance_prices']['light'])
+        self.assertEqual(self.cars[0].insurances.standard_price + self.cars[0].insurances.standard_price_per_ten_min,
+                         response.data['insurance_prices']['standard'])
+        self.assertEqual(self.cars[0].insurances.special_price + self.cars[0].insurances.special_price_per_ten_min,
+                         response.data['insurance_prices']['special'])
 
     def test_should_list_Cars_info_at_selected_CarZone(self):
         """
@@ -209,6 +219,7 @@ class CarTestCase(APITestCase):
         default_credit = 100000
         self.user.profile.credit_point = default_credit
         self.user.profile.save()
+
         # 미래 시간으로 data 테스트
         data = {'date_time_start': '2020-10-19T13:10:00Z',
                 'date_time_end': '2020-10-19T13:50:00Z',
@@ -269,11 +280,11 @@ class CarTestCase(APITestCase):
                                         car_id=self.cars[0].id,
                                         zone_id=self.zones[0].id,
                                         _quantity=2)
-
+        self.client.force_authenticate(user=user2)
         response = self.client.get(f'/reservations')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for entry, response_entry in zip(reservations_user, response.data['results']):
+        for entry, response_entry in zip(reservations_user2, response.data['results']):
             self.assertEqual(entry.id, response_entry['id'])
             self.assertEqual(entry.member.id, response_entry['member'])
             self.assertEqual(entry.car.id, response_entry['car'])
@@ -308,6 +319,11 @@ class CarTestCase(APITestCase):
             Request : POST - /reservations/123/payment_after
             주행거리 100 Km 이상 구간 테스트
         """
+        # Credit 초기화
+        default_credit = 100000
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
+
         data = {'driving_distance': '120'}
         distance = int(data['driving_distance'])
         first_section_fee = (distance - 100) * self.car_price_1.min_price_per_km
@@ -327,11 +343,20 @@ class CarTestCase(APITestCase):
         self.assertEqual(str(self.reservation.id), response.data['reservation'])
         self.assertEqual(distance, response.data['driving_distance'])
 
+        # Credit Check
+        self.assertEqual(default_credit - total_fee,
+                         Profile.objects.get(member_id=self.user.id).credit_point)
+
     def test_should_create_PaymentAfterUse_gte_70_lte_100_distance(self):
         """
             Request : POST - /reservations/123/payment_after
             주행거리 30 Km 이상 100 Km 이하 구간 테스트
         """
+        # Credit 초기화
+        default_credit = 100000
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
+
         data = {'driving_distance': '90'}
         distance = int(data['driving_distance'])
         first_section_fee = 0
@@ -351,11 +376,21 @@ class CarTestCase(APITestCase):
         self.assertEqual(str(self.reservation.id), response.data['reservation'])
         self.assertEqual(distance, response.data['driving_distance'])
 
+        # Credit Check
+        self.assertEqual(default_credit - total_fee,
+                         Profile.objects.get(member_id=self.user.id).credit_point)
+
     def test_should_create_PaymentAfterUse_lte_30_distance(self):
         """
             Request : POST - /reservations/123/payment_after
             주행거리 30 Km 이하 구간 테스트
         """
+
+        # Credit 초기화
+        default_credit = 100000
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
+
         data = {'driving_distance': '20'}
         distance = int(data['driving_distance'])
         first_section_fee = 0
@@ -374,6 +409,10 @@ class CarTestCase(APITestCase):
         self.assertEqual(self.user.id, response.data['member'])
         self.assertEqual(str(self.reservation.id), response.data['reservation'])
         self.assertEqual(distance, response.data['driving_distance'])
+
+        # Credit Check
+        self.assertEqual(default_credit - total_fee,
+                         Profile.objects.get(member_id=self.user.id).credit_point)
 
     def test_should_retrieve_PaymentAfterUse(self):
         """
