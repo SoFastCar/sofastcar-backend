@@ -8,7 +8,7 @@ from cars.views import CarViewSet
 from carzones.views import CarZoneViewSet
 from events.views import EventPhotoViewSet
 from members.views import MembersViewSet, ProfileViewSet, PhoneAuthViewSet
-from payments.views import PaymentBeforeUseViewSet
+from payments.views import PaymentBeforeUseViewSet, PaymentAfterUseViewSet
 from reservations.views import ReservationViewSet, ReservationHistoryViewSet
 
 router = SimpleRouter(trailing_slash=False)
@@ -33,9 +33,11 @@ carzone_car_router.register('reservations', ReservationViewSet)
 
 """
 reservations/123/payment_before
+reservations/123/payment_after
 """
 reservation_payment_before_router = routers.NestedSimpleRouter(router, 'reservations', lookup='reservation')
 reservation_payment_before_router.register('payment_before', PaymentBeforeUseViewSet)
+reservation_payment_before_router.register('payment_after', PaymentAfterUseViewSet)
 
 urlpatterns = router.urls
 

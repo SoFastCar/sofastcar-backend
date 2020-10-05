@@ -37,10 +37,20 @@ class CarTestCase(APITestCase):
         self.cars = baker.make('cars.Car', zone=self.zones[0],
                                image=self.test_image.name, _quantity=2)
         # 테스트용 차량 가격 2개
-        self.car_price_1 = baker.make('prices.CarPrice', car=self.cars[0], standard_price=1000,
-                                      weekday_price_per_ten_min=10)
-        self.car_price_2 = baker.make('prices.CarPrice', car=self.cars[1], standard_price=2000,
-                                      weekday_price_per_ten_min=20)
+        self.car_price_1 = baker.make('prices.CarPrice',
+                                      car=self.cars[0],
+                                      standard_price=1000,
+                                      weekday_price_per_ten_min=10,
+                                      min_price_per_km=10,
+                                      mid_price_per_km=100,
+                                      max_price_per_km=1000)
+        self.car_price_2 = baker.make('prices.CarPrice',
+                                      car=self.cars[1],
+                                      standard_price=2000,
+                                      weekday_price_per_ten_min=20,
+                                      min_price_per_km=20,
+                                      mid_price_per_km=200,
+                                      max_price_per_km=2000)
         self.car_prices = [self.car_price_1, self.car_price_2]
 
         # 테스트용 차량 스케쥴 2개
@@ -68,7 +78,8 @@ class CarTestCase(APITestCase):
         """
         Request : GET - /carzones/123/cars?date_time_start=202009261400&date_time_end=202009261440
         """
-        response = self.client.get(f'/carzones/{self.zones[0].id}/cars?date_time_start=202009261400&date_time_end=202009261440')
+        response = self.client.get(
+            f'/carzones/{self.zones[0].id}/cars?date_time_start=202009261400&date_time_end=202009261440')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -104,8 +115,6 @@ class CarTestCase(APITestCase):
             self.assertEqual(entry.min_price_per_km, response_entry['car_prices']['min_price_per_km'])
             self.assertEqual(entry.mid_price_per_km, response_entry['car_prices']['mid_price_per_km'])
             self.assertEqual(entry.max_price_per_km, response_entry['car_prices']['max_price_per_km'])
-
-
 
     def test_should_retrieve_Cars_and_CarPrices(self):
         """
@@ -215,6 +224,9 @@ class CarTestCase(APITestCase):
         self.assertEqual(default_credit - rental_fee - insurance_fee, self.user.profile.credit_point)
 
     def test_should_retrieve_Reservation(self):
+        """
+        Request : GET - /reservations/123
+        """
         expected_insurance = 'special'
         test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
         test_date_time_end = datetime.datetime(2020, 10, 20, 20, 0, tzinfo=datetime.timezone.utc)
@@ -234,6 +246,9 @@ class CarTestCase(APITestCase):
         self.assertEqual(str(test_date_time_end.astimezone(KST)).replace(' ', 'T'), response.data['date_time_end'])
 
     def test_should_list_Reservations_owner_only(self):
+        """
+        Request : GET - /reservations
+        """
         user2 = Member.objects.create(email='test2@example.com',
                                       password='test2')
         reservations_user = baker.make('reservations.Reservation',
@@ -262,6 +277,9 @@ class CarTestCase(APITestCase):
                              response_entry['date_time_end'])
 
     def test_should_retrieve_PaymentBeforeUse(self):
+        """
+            Request : GET - /reservations/123/payment_before
+        """
         expected_insurance = 'special'
         test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
         test_date_time_end = datetime.datetime(2020, 10, 20, 19, 40, tzinfo=datetime.timezone.utc)
@@ -285,16 +303,119 @@ class CarTestCase(APITestCase):
         self.assertEqual(entry.etc_discount, response.data['results'][0]['etc_discount'])
         self.assertEqual(entry.extension_fee, response.data['results'][0]['extension_fee'])
         self.assertEqual(entry.total_fee, response.data['results'][0]['total_fee'])
-        # def test_should_create_multi_photos(self):
-        #     """
-        #     Request : POST - /reservations/123/photos
-        #     """
-        #     expected_count = 2
-        #     test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
-        #     test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
-        #
-        #     data = {'photos': [test_image_1, test_image_2]}
-        #
-        #     response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
-        #     self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
-        #     self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
+
+    def test_should_create_PaymentAfterUse_gte_100_distance(self):
+        """
+            Request : POST - /reservations/123/payment_after
+            주행거리 100 Km 이상 구간 테스트
+        """
+        expected_insurance = 'special'
+        test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
+        test_date_time_end = datetime.datetime(2020, 10, 20, 19, 40, tzinfo=datetime.timezone.utc)
+        reservation = Reservation.objects.create(car_id=self.cars[0].id,
+                                                 zone_id=self.zones[0].id,
+                                                 member_id=self.user.id,
+                                                 insurance=expected_insurance,
+                                                 date_time_start=test_date_time_start,
+                                                 date_time_end=test_date_time_end)
+
+        data = {'driving_distance': '120'}
+        distance = int(data['driving_distance'])
+        first_section_fee = (distance - 100) * self.car_price_1.min_price_per_km
+        second_section_fee = 70 * self.car_price_1.mid_price_per_km
+        third_section_fee = 30 * self.car_price_1.max_price_per_km
+        total_fee = first_section_fee + second_section_fee + third_section_fee
+
+        response = self.client.post(f'/reservations/{reservation.id}/payment_after', data=data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(first_section_fee, response.data['first_section_fee'])
+        self.assertEqual(second_section_fee, response.data['second_section_fee'])
+        self.assertEqual(third_section_fee, response.data['third_section_fee'])
+        self.assertEqual(total_fee, response.data['total_fee'])
+        self.assertEqual(self.user.id, response.data['member'])
+        self.assertEqual(str(reservation.id), response.data['reservation'])
+        self.assertEqual(distance, response.data['driving_distance'])
+
+    def test_should_create_PaymentAfterUse_gte_70_lte_100_distance(self):
+        """
+            Request : POST - /reservations/123/payment_after
+            주행거리 30 Km 이상 100 Km 이하 구간 테스트
+        """
+        expected_insurance = 'special'
+        test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
+        test_date_time_end = datetime.datetime(2020, 10, 20, 19, 40, tzinfo=datetime.timezone.utc)
+        reservation = Reservation.objects.create(car_id=self.cars[0].id,
+                                                 zone_id=self.zones[0].id,
+                                                 member_id=self.user.id,
+                                                 insurance=expected_insurance,
+                                                 date_time_start=test_date_time_start,
+                                                 date_time_end=test_date_time_end)
+
+        data = {'driving_distance': '90'}
+        distance = int(data['driving_distance'])
+        first_section_fee = 0
+        second_section_fee = (distance - 70) * self.car_price_1.mid_price_per_km
+        third_section_fee = 30 * self.car_price_1.max_price_per_km
+        total_fee = first_section_fee + second_section_fee + third_section_fee
+
+        response = self.client.post(f'/reservations/{reservation.id}/payment_after', data=data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(first_section_fee, response.data['first_section_fee'])
+        self.assertEqual(second_section_fee, response.data['second_section_fee'])
+        self.assertEqual(third_section_fee, response.data['third_section_fee'])
+        self.assertEqual(total_fee, response.data['total_fee'])
+        self.assertEqual(self.user.id, response.data['member'])
+        self.assertEqual(str(reservation.id), response.data['reservation'])
+        self.assertEqual(distance, response.data['driving_distance'])
+
+    def test_should_create_PaymentAfterUse_lte_30_distance(self):
+        """
+            Request : POST - /reservations/123/payment_after
+            주행거리 30 Km 이하 구간 테스트
+        """
+        expected_insurance = 'special'
+        test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
+        test_date_time_end = datetime.datetime(2020, 10, 20, 19, 40, tzinfo=datetime.timezone.utc)
+        reservation = Reservation.objects.create(car_id=self.cars[0].id,
+                                                 zone_id=self.zones[0].id,
+                                                 member_id=self.user.id,
+                                                 insurance=expected_insurance,
+                                                 date_time_start=test_date_time_start,
+                                                 date_time_end=test_date_time_end)
+
+        data = {'driving_distance': '20'}
+        distance = int(data['driving_distance'])
+        first_section_fee = 0
+        second_section_fee = 0
+        third_section_fee = distance * self.car_price_1.max_price_per_km
+        total_fee = first_section_fee + second_section_fee + third_section_fee
+
+        response = self.client.post(f'/reservations/{reservation.id}/payment_after', data=data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(first_section_fee, response.data['first_section_fee'])
+        self.assertEqual(second_section_fee, response.data['second_section_fee'])
+        self.assertEqual(third_section_fee, response.data['third_section_fee'])
+        self.assertEqual(total_fee, response.data['total_fee'])
+        self.assertEqual(self.user.id, response.data['member'])
+        self.assertEqual(str(reservation.id), response.data['reservation'])
+        self.assertEqual(distance, response.data['driving_distance'])
+
+    # def test_should_create_multi_photos(self):
+    #     """
+    #     Request : POST - /reservations/123/photos
+    #     """
+    #     expected_count = 2
+    #     test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
+    #     test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
+    #
+    #     data = {'photos': [test_image_1, test_image_2]}
+    #
+    #     response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
+    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
+    #     self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
