@@ -52,3 +52,8 @@ class PaymentAfterUseViewSet(mixins.CreateModelMixin,
         get_object_or_404(Reservation, id=self.kwargs.get('reservation_pk'))
         serializer.save(member=self.request.user,
                         reservation_id=self.kwargs.get('reservation_pk'))
+
+    def list(self, request, *args, **kwargs):
+        get_object_or_404(Reservation, id=self.kwargs.get('reservation_pk'))
+        get_object_or_404(PaymentAfterUse, reservation_id=self.kwargs.get('reservation_pk'))
+        return super().list(request, *args, **kwargs)
