@@ -12,6 +12,15 @@ from events.serializers import EventPhotoListSerializer
 class EventPhotoViewSet(mixins.RetrieveModelMixin,
                         mixins.ListModelMixin,
                         GenericViewSet):
+    """
+        SoFastCar App의 광고 이미지를 보여주는 API
+        ---
+        # 내용
+            [GET] /event_photos
+            -> 광고 이미지 리스트 반환
+            [GET] /event_photos/123
+            -> 특정 광고 이미지 반환
+    """
     queryset = EventPhoto.objects.all()
     serializer_class = EventPhotoListSerializer
     permission_classes = [IsAuthenticated, ]

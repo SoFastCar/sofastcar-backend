@@ -39,7 +39,15 @@ class CarZonePricesSerializer(ModelSerializer):
 
     class Meta:
         model = CarZone
-        fields = ['id', 'name', 'sub_info', 'type', 'cars', 'time_tables']
-        read_only_fields = ['id', 'name', 'sub_info', 'type', 'cars', 'time_tables']
-
-
+        fields = ['id',
+                  'name',
+                  'sub_info',
+                  'type',
+                  'cars',
+                  'time_tables']
+        read_only_fields = ['id',
+                            'name',
+                            'sub_info',
+                            'type',
+                            'cars',
+                            'time_tables']

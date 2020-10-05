@@ -66,9 +66,9 @@ class CarTestCase(APITestCase):
 
     def test_should_list_Cars_and_CarPrices(self):
         """
-        Request : GET - /carzones/123/cars
+        Request : GET - /carzones/123/cars?date_time_start=202009261400&date_time_end=202009261440
         """
-        response = self.client.get(f'/carzones/{self.zones[0].id}/cars')
+        response = self.client.get(f'/carzones/{self.zones[0].id}/cars?date_time_start=202009261400&date_time_end=202009261440')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -86,6 +86,15 @@ class CarTestCase(APITestCase):
             self.assertEqual(entry.manual_page, response_entry['manual_page'])
             self.assertEqual(entry.safety_option, response_entry['safety_option'])
             self.assertEqual(entry.convenience_option, response_entry['convenience_option'])
+            # 입력한 기간에 따른 가격
+            self.assertEqual(entry.carprice.standard_price + entry.carprice.weekday_price_per_ten_min,
+                             response_entry['term_price'])
+            self.assertEqual(entry.insurances.light_price + entry.insurances.light_price_per_ten_min,
+                             response_entry['insurance_prices']['light'])
+            self.assertEqual(entry.insurances.standard_price + entry.insurances.standard_price_per_ten_min,
+                             response_entry['insurance_prices']['standard'])
+            self.assertEqual(entry.insurances.special_price + entry.insurances.special_price_per_ten_min,
+                             response_entry['insurance_prices']['special'])
 
         # Car_Prices 부분
         for entry, response_entry in zip(self.car_prices, response.data['results']):
@@ -95,6 +104,8 @@ class CarTestCase(APITestCase):
             self.assertEqual(entry.min_price_per_km, response_entry['car_prices']['min_price_per_km'])
             self.assertEqual(entry.mid_price_per_km, response_entry['car_prices']['mid_price_per_km'])
             self.assertEqual(entry.max_price_per_km, response_entry['car_prices']['max_price_per_km'])
+
+
 
     def test_should_retrieve_Cars_and_CarPrices(self):
         """

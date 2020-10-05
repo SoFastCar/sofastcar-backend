@@ -14,6 +14,14 @@ from .serializers import CarZoneSerializer, CarZonePricesSerializer
 class CarZoneViewSet(mixins.RetrieveModelMixin,
                      mixins.ListModelMixin,
                      GenericViewSet):
+    """
+        특정 쏘카존 정보 혹은 리스트 반환하는 API
+        ---
+        # 내용
+            [GET] /carzones : 모든 쏘카존 디테일 정보 반환 (리스트)
+            [GET] /carzones/123 : 특정 쏘카존 디테일 정보 반환
+            [GET] /carzones/?keyword=성수동 : 쏘카존 이름, 주소 검색 기능
+    """
     queryset = CarZone.objects.all()
     serializer_class = CarZoneSerializer
     permission_classes = [IsAuthenticated, ]
@@ -32,6 +40,17 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
 
     @action(detail=False)
     def distance(self, request, *args, **kwargs):
+        """
+            기준 위치(위도,경도) 및 거리에 따른 쏘카존 반환
+
+                [GET] /carzones/distance?lat={float}&lon={float}&distance={float}
+
+                lat : 위도 (float), 단위: degree
+                lon : 경도 (float), 단위: degree
+                distance : 거리 (float), 단위: km
+
+                값이 없거나 부적절한 값일 경우 모두 400 에러로 반환합니다
+        """
         lat_per_km = 1 / 109.958489129649955
         lon_per_km = 1 / 88.74
 
@@ -59,6 +78,22 @@ class CarZoneViewSet(mixins.RetrieveModelMixin,
 
     @action(detail=True)
     def info(self, request, *args, **kwargs):
+        """
+            기간에 따른 쏘카존 차량, 금액, 보험료, 시간표
+            ---
+            # 내용
+                [GET] /carzones/260/info?date_time_start=202009251400&date_time_end=202009251600
+
+                쏘카존 선택 후 대여기간 입력시 보여지는 차량과 가격, 보험료 목록 입니다.
+                (마지막에 타임 테이블 같이 나오도록 하였습니다)
+            ---
+                쿼리 파라미터는 2020년09월26일14시00분 -> 202009261400(str값) (KST:한국시간기준)
+                시간차에 의한 DB 권장사항에 따라 DB에는 UTC 기준으로 시간이 저장되고 이 값이 Response로 나갈때
+                timezone을 KST로 변경하여 보여주게 됩니다
+
+                사용자가 예약 종료 시점을 언제로 잡을지 모르기 때문에,
+                해당 쏘카존에서 차량별 일단 사용자가 원하는 시작 시점부터 잡혀있는 타임테이블은 모두 반환하게 하였습니다
+        """
         carzone = get_object_or_404(CarZone, id=kwargs.get('pk'))
         try:
             date_time_start = request.query_params.get('date_time_start')

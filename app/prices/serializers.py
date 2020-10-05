@@ -65,3 +65,4 @@ class InsuranceFeeSerializer(ModelSerializer):
             'standard': insurance.get_standard_price(date_time_start, date_time_end),
             'light': insurance.get_light_price(date_time_start, date_time_end),
         }
+

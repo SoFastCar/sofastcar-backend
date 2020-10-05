@@ -22,9 +22,11 @@ from django.contrib import admin
 from django.urls import path, include
 
 from config import settings
+from core.docs import schema_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
+    path('docs', schema_view.with_ui('redoc', cache_timeout=0)),
 ]
 # urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
