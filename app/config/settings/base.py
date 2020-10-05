@@ -74,6 +74,8 @@ INSTALLED_APPS = [
     'import_export',
     'storages',
     'django_extensions',
+
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
