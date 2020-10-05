@@ -36,6 +36,9 @@ class PaymentAfterUseViewSet(mixins.CreateModelMixin,
         ---
         # 내용
             [GET] /reservations/5/payment_after : 특정 예약건에 대한 운행 종료 후 2차 요금 보기
+        ---
+            [POST] /reservations/5/payment_after : 특정 예약건에 대한 반납 후 2차 요금 결제
+            (운행종료 후 주차 체크 이후 반납하기 버튼 눌러서 결제되는 순간)
     """
     queryset = PaymentAfterUse.objects.all()
     serializer_class = PaymentAfterUseSerializer
@@ -49,3 +52,8 @@ class PaymentAfterUseViewSet(mixins.CreateModelMixin,
         get_object_or_404(Reservation, id=self.kwargs.get('reservation_pk'))
         serializer.save(member=self.request.user,
                         reservation_id=self.kwargs.get('reservation_pk'))
+
+    def list(self, request, *args, **kwargs):
+        get_object_or_404(Reservation, id=self.kwargs.get('reservation_pk'))
+        get_object_or_404(PaymentAfterUse, reservation_id=self.kwargs.get('reservation_pk'))
+        return super().list(request, *args, **kwargs)

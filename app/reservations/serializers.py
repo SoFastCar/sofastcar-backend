@@ -8,7 +8,7 @@ from rest_framework.serializers import ModelSerializer
 
 from cars.models import Car
 from core.utils import KST
-from members.models import Member
+from members.models import Member, Profile
 from reservations.models import Reservation
 
 
@@ -41,6 +41,7 @@ class ReservationSerializer(ModelSerializer):
         date_time_end = attrs.get('date_time_end')
         insurance_type = attrs.get('insurance')
 
+        # UTC 체크
         if date_time_start.tzinfo != pytz.utc or date_time_end.tzinfo != pytz.utc:
             raise serializers.ValidationError('UTC 시간대로 입력해야 합니다.')
 
@@ -58,9 +59,9 @@ class ReservationSerializer(ModelSerializer):
         # 차량 존재, 이용시간대 중복 체크
         if Car.objects.filter(id=self.context['view'].kwargs.get('car_pk')).exists():
             car = Car.objects.get(id=self.context['view'].kwargs.get('car_pk'))
-            if car.time_tables.filter(Q(date_time_start__lte=date_time_start, date_time_end__gte=date_time_end) |
-                                      Q(date_time_start__gte=date_time_end, date_time_end__lte=date_time_end) |
-                                      Q(date_time_start__gte=date_time_start, date_time_end__gte=date_time_start)):
+            if car.time_tables.filter(Q(date_time_start__lte=date_time_start) & Q(date_time_end__gte=date_time_end) |
+                                      Q(date_time_end__range=(date_time_start, date_time_end)) |
+                                      Q(date_time_start__range=(date_time_start, date_time_end))).exists():
                 raise serializers.ValidationError('해당 이용시간대는 사용 불가능합니다.')
         else:
             raise serializers.ValidationError('해당 차량이 존재하지 않습니다.')
@@ -77,7 +78,7 @@ class ReservationSerializer(ModelSerializer):
 
         # 크레딧 잔고 체크
         member = Member.objects.get(email=self.context['view'].request.user)
-        if member.profile.credit_point < total_rental_price:
+        if Profile.objects.get(member_id=member.id).credit_point < total_rental_price:
             raise serializers.ValidationError('크레딧 잔액이 부족합니다.')
         return attrs
 
