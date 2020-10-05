@@ -1,8 +1,10 @@
 from django.db import models, transaction
+from django.db.models import F
 from django.utils.translation import gettext as _
 
 # Create your models here.
 from cars.models import CarTimeTable
+from members.models import Profile
 from payments.models import PaymentBeforeUse
 
 
@@ -60,8 +62,7 @@ class Reservation(models.Model):
 
         with transaction.atomic():
             # blance
-            self.member.profile.credit_point -= total_fee
-            self.member.profile.save()
+            Profile.objects.filter(member_id=self.member.id).update(credit_point=F('credit_point') - total_fee)
 
             # Reservation save()
             super().save(force_insert, force_update, using, update_fields)
@@ -73,10 +74,10 @@ class Reservation(models.Model):
                 extension_status.save()
 
                 # 기존 결제 정보에 연장료 추가 저장
-                pay = PaymentBeforeUse.objects.get(reservation_id=self.id)
-                pay.extension_fee = total_fee
-                pay.total_fee = total_fee + pay.extension_fee
-                pay.save()
+                PaymentBeforeUse.objects.filter(reservation_id=self.id).update(
+                    extension_fee=F('extension_fee') + total_fee)
+                PaymentBeforeUse.objects.filter(reservation_id=self.id).update(
+                    total_fee=F('total_fee') + F('extension_fee'))
 
                 # Extension TimeTable save
                 timetable = CarTimeTable.objects.get(zone_id=self.zone_id,

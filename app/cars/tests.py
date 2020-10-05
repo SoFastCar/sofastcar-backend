@@ -11,7 +11,7 @@ from rest_framework.test import APITestCase
 # from cars.models import PhotoBeforeUse
 from cars.models import CarTimeTable
 from core.utils import trans_kst_to_utc, KST
-from members.models import Member
+from members.models import Member, Profile
 from payments.models import PaymentBeforeUse, PaymentAfterUse
 from prices.models import InsuranceFee
 from reservations.models import ReservationStatus, Reservation
@@ -75,8 +75,8 @@ class CarTestCase(APITestCase):
 
         # 테스트용 예약 생성
         self.expected_insurance = 'special'
-        self.test_date_time_start = datetime.datetime(2020, 10, 20, 19, 0, tzinfo=datetime.timezone.utc)
-        self.test_date_time_end = datetime.datetime(2020, 10, 20, 20, 0, tzinfo=datetime.timezone.utc)
+        self.test_date_time_start = datetime.datetime(2020, 10, 19, 12, 0, tzinfo=datetime.timezone.utc)
+        self.test_date_time_end = datetime.datetime(2020, 10, 19, 13, 0, tzinfo=datetime.timezone.utc)
         self.reservation = Reservation.objects.create(car_id=self.cars[0].id,
                                                       zone_id=self.zones[0].id,
                                                       member_id=self.user.id,
@@ -205,14 +205,18 @@ class CarTestCase(APITestCase):
         Request : POST - /carzones/123/cars/456/reservations
         """
         expected_status = ReservationStatus.ChoiceStatus.PAID_1.value
+        # Credit 초기화
+        default_credit = 100000
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
         # 미래 시간으로 data 테스트
-        data = {'date_time_start': '2020-10-05T21:00:00Z',
-                'date_time_end': '2020-10-05T21:40:00Z',
+        data = {'date_time_start': '2020-10-19T13:10:00Z',
+                'date_time_end': '2020-10-19T13:50:00Z',
                 'insurance': 'light'}
 
         response = self.client.post(f'/carzones/{self.zones[0].id}/cars/{self.cars[0].id}/reservations', data=data)
-
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
         self.assertEqual(str(self.zones[0].id), response.data['zone'])
         self.assertEqual(str(self.cars[0].id), response.data['car'])
         self.assertEqual(data['insurance'], response.data['insurance'])
@@ -231,8 +235,8 @@ class CarTestCase(APITestCase):
         self.assertEqual(rental_fee + insurance_fee,
                          PaymentBeforeUse.objects.get(reservation_id=response.data['id']).total_fee)
         # Credit Check
-        default_credit = 100000
-        self.assertEqual(default_credit - rental_fee - insurance_fee, self.user.profile.credit_point)
+        self.assertEqual(default_credit - rental_fee - insurance_fee,
+                         Profile.objects.get(member_id=self.user.id).credit_point)
 
     def test_should_retrieve_Reservation(self):
         """

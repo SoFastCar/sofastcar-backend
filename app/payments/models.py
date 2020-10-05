@@ -29,6 +29,9 @@ class PaymentAfterUse(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, help_text='TimeStamp')
     updated_at = models.DateTimeField(auto_now=True)
 
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        super().save(force_insert, force_update, using, update_fields)
+
 
 class TollFee(models.Model):
     reservation = models.ForeignKey('reservations.Reservation', on_delete=models.CASCADE,
