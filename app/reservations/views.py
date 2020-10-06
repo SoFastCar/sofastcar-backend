@@ -49,6 +49,7 @@ class ReservationHistoryViewSet(mixins.RetrieveModelMixin,
         # 내용
             [GET] /reservations/123 : 요청한 사용자의 특정 예약 보기
             [GET] /reservations : 요청한 사용자의 예약 리스트 보기
+            [GET] /reservations/history : 요청한 사용자의 이용 내역 리스트 보기
         ---
             DB 저장시 : UTC 기준으로 저장됩니다. (서버 시간은 현재 UTC 기준입니다.)
             예약 데이터를 볼때 Response : KST(한국시간) 기준으로 보입니다.

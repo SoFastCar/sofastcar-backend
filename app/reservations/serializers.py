@@ -115,14 +115,14 @@ class ReservationHistorySerializer(ModelSerializer):
 
 class UseHistoryListSerializer(ModelSerializer):
     reservation_status = serializers.SerializerMethodField()
-    zone_name = serializers.CharField(read_only=True, source='reservation_zones.name')
-    return_zone = serializers.CharField(read_only=True, source='reservation_zones.name')
+    zone_name = serializers.CharField(read_only=True, source='zone.name')
+    return_zone = serializers.CharField(read_only=True, source='zone.name')
     date_time_start = serializers.DateTimeField(read_only=True, default_timezone=KST)
     date_time_end = serializers.DateTimeField(read_only=True, default_timezone=KST)
     date_time_extension = serializers.DateTimeField(read_only=True, default_timezone=KST)
-    car_name = serializers.CharField(read_only=True, source='reservation_cars.name')
-    car_number = serializers.CharField(read_only=True, source='reservation_cars.number')
-    car_image = serializers.ImageField(read_only=True, allow_null=True, source='reservation_cars.image')
+    car_name = serializers.CharField(read_only=True, source='car.name')
+    car_number = serializers.CharField(read_only=True, source='car.number')
+    car_image = serializers.ImageField(read_only=True, allow_null=True, source='car.image')
     distance = serializers.SerializerMethodField()
 
     class Meta:

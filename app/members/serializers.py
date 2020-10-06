@@ -1,8 +1,12 @@
 from datetime import date
 
+from django.db.models import Sum
+
 from members.models import Member, Profile, PhoneAuth
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
+
+from payments.models import PaymentAfterUse
 
 
 class MembersSerializer(ModelSerializer):
@@ -17,11 +21,41 @@ class MembersSerializer(ModelSerializer):
             'name',
             'email',
             'password',
+            'phone',
         )
 
         extra_kwargs = {
             'password': {'write_only': True},
         }
+
+
+class MemberInfoSerializer(ModelSerializer):
+    credit_point = serializers.IntegerField(read_only=True)
+    total_driving_distance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Member
+        fields = ['id',
+                  'name',
+                  'email',
+                  'credit_point',
+                  'phone',
+                  'total_driving_distance'
+                  ]
+        read_only_fields = ['id',
+                            'name',
+                            'email',
+                            'credit_point',
+                            'total_driving_distance',
+                            'phone'
+                            ]
+
+    def get_total_driving_distance(self, obj):
+        if PaymentAfterUse.objects.filter(member_id=obj.id).exists():
+            total_distance = PaymentAfterUse.objects.filter(member_id=obj.id).aggregate(Sum('driving_distance'))
+            return total_distance['driving_distance__sum']
+        else:
+            return 0
 
 
 class ChangePasswordSerializer(ModelSerializer):

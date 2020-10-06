@@ -31,6 +31,8 @@ class ImageMaker:
 class CarTestCase(APITestCase):
     def setUp(self):
         self.user = Member.objects.create(email='test@example.com',
+                                          name='test',
+                                          phone='01033332222',
                                           password='test')
         self.test_image = ImageMaker.temporary_image()
         self.zones = baker.make('carzones.CarZone', _quantity=2)
@@ -417,7 +419,6 @@ class CarTestCase(APITestCase):
     def test_should_retrieve_PaymentAfterUse(self):
         """
             Request : GET - /reservations/123/payment_after
-
         """
         entry = PaymentAfterUse.objects.create(driving_distance=100,
                                                first_section_fee=10,
@@ -438,7 +439,10 @@ class CarTestCase(APITestCase):
         self.assertEqual(entry.reservation.id, response.data['results'][0]['reservation'])
 
     def test_should_list_UseHistory(self):
-        expected_status ='반납완료'
+        """
+            Request : GET - /reservations/history
+        """
+        expected_status = '반납완료'
         user2 = Member.objects.create(email='test2@example.com',
                                       password='test2')
         self.client.force_authenticate(user=user2)
@@ -466,18 +470,49 @@ class CarTestCase(APITestCase):
         payments = [payment_1, payment_2]
 
         response = self.client.get(f'/reservations/history')
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         for entry, response_entry in zip(payments, response.data['results']):
             self.assertEqual(entry.reservation.id, response_entry['id'])
-            self.assertEqual(expected_status, response_entry['reservation_status'])
             self.assertEqual(entry.member.id, response_entry['member'])
-            self.assertEqual(self.zones[0].id, response_entry['zone'])
-            self.assertEqual(self.cars[0].id, response_entry['car'])
             self.assertEqual(entry.driving_distance, response_entry['distance'])
 
+        for response_entry in response.data['results']:
+            self.assertEqual(expected_status, response_entry['reservation_status'])
+            self.assertEqual(self.zones[0].id, response_entry['zone'])
+            self.assertEqual(self.cars[0].id, response_entry['car'])
 
+    def test_should_list_MemberSelf_with_total_driving_distance(self):
+        reservations = baker.make('reservations.Reservation',
+                                  member=self.user,
+                                  car_id=self.cars[0].id,
+                                  zone_id=self.zones[0].id,
+                                  _quantity=2)
+        payment_1 = baker.make('payments.PaymentAfterUse',
+                               member=self.user,
+                               reservation_id=reservations[0].id,
+                               driving_distance=100,
+                               first_section_fee=10,
+                               second_section_fee=100,
+                               third_section_fee=1000,
+                               total_fee=1110)
+        payment_2 = baker.make('payments.PaymentAfterUse',
+                               member=self.user,
+                               reservation_id=reservations[1].id,
+                               driving_distance=200,
+                               first_section_fee=20,
+                               second_section_fee=200,
+                               third_section_fee=2000,
+                               total_fee=2220)
+        response = self.client.get(f'/members')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(self.user.name, response.data['results'][0]['name'])
+        self.assertEqual(self.user.email, response.data['results'][0]['email'])
+        self.assertEqual(self.user.phone, response.data['results'][0]['phone'])
+        self.assertEqual(payment_1.driving_distance + payment_2.driving_distance,
+                         response.data['results'][0]['total_driving_distance'])
     # def test_should_create_multi_photos(self):
     #     """
     #     Request : POST - /reservations/123/photos

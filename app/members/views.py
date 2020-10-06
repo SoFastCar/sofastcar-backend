@@ -5,11 +5,14 @@ from rest_framework.response import Response
 from members.models import Member, Profile, PhoneAuth
 from core.permissions import IsAnonymous, IsUserSelf
 from members.serializers import MembersSerializer, ChangePasswordSerializer, ProfileSerializer, PhoneAuthSerializer, \
-    CheckAuthNumberSerializer
+    CheckAuthNumberSerializer, MemberInfoSerializer
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
 
-class MembersViewSet(ModelViewSet):
+class MembersViewSet(mixins.CreateModelMixin,
+                     mixins.DestroyModelMixin,
+                     mixins.ListModelMixin,
+                     GenericViewSet):
     queryset = Member.objects.all()
     serializer_class = MembersSerializer
 
@@ -18,11 +21,18 @@ class MembersViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'change_password':
             return ChangePasswordSerializer
+        elif self.action == 'list':
+            return MemberInfoSerializer
         else:
             return super().get_serializer_class()
 
+    def filter_queryset(self, queryset):
+        if self.action == 'list':
+            queryset = queryset.filter(id=self.request.user.id)
+        return super().filter_queryset(queryset)
+
     def get_permissions(self):
-        if self.action == 'change_password':
+        if self.action in ('change_password', 'list'):
             return [IsUserSelf()]
         return super().get_permissions()
 
