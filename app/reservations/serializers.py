@@ -9,6 +9,7 @@ from rest_framework.serializers import ModelSerializer
 from cars.models import Car
 from core.utils import KST
 from members.models import Member, Profile
+from payments.models import PaymentAfterUse
 from reservations.models import Reservation
 
 
@@ -110,3 +111,80 @@ class ReservationHistorySerializer(ModelSerializer):
                             'date_time_end',
                             'created_at',
                             'updated_at']
+
+
+class UseHistoryListSerializer(ModelSerializer):
+    reservation_status = serializers.SerializerMethodField()
+    zone_name = serializers.CharField(read_only=True, source='zone.name')
+    return_zone = serializers.CharField(read_only=True, source='zone.name')
+    date_time_start = serializers.DateTimeField(read_only=True, default_timezone=KST)
+    date_time_end = serializers.DateTimeField(read_only=True, default_timezone=KST)
+    date_time_extension = serializers.DateTimeField(read_only=True, default_timezone=KST)
+    car_name = serializers.CharField(read_only=True, source='car.name')
+    car_number = serializers.CharField(read_only=True, source='car.number')
+    car_image = serializers.ImageField(read_only=True, allow_null=True, source='car.image')
+    distance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Reservation
+        fields = ['id',
+                  'reservation_status',
+                  'member',
+                  'zone',
+                  'zone_name',
+                  'return_zone',
+                  'car',
+                  'car_name',
+                  'car_number',
+                  'car_image',
+                  'distance',
+                  'date_time_start',
+                  'date_time_end',
+                  'date_time_extension',
+                  ]
+        read_only_fields = ['id',
+                            'reservation_status',
+                            'member',
+                            'zone',
+                            'zone_name',
+                            'return_zone',
+                            'car',
+                            'car_name',
+                            'car_number',
+                            'car_image',
+                            'distance',
+                            'date_time_start',
+                            'date_time_end',
+                            'date_time_extension',
+                            ]
+
+    def get_reservation_status(self, obj):
+        if obj.status.status == obj.status.ChoiceStatus.PAID_2:
+            obj.status.status = obj.status.ChoiceStatus.FINISHED
+            obj.status.save()
+            return '반납완료'
+        elif obj.status.status == obj.status.ChoiceStatus.PAID_1:
+            if obj.date_time_start <= timezone.now() < obj.date_time_end:
+                return '사용중'
+            elif timezone.now() < obj.date_time_start:
+                return '운행전결제완료'
+            else:
+                return '2차결제미납'
+        elif obj.status.status == obj.status.ChoiceStatus.FINISHED:
+            return '반납완료'
+        elif obj.status.status == obj.status.ChoiceStatus.NOTPAID:
+            return '운행전결제미납'
+        elif obj.status.status == obj.status.ChoiceStatus.EXTENDED:
+            if obj.date_time_start <= timezone.now() < obj.date_time_end:
+                return '사용중'
+            elif obj.date_time_end <= timezone.now() < obj.date_time_extension:
+                return '연장중'
+            elif obj.date_time_extension <= timezone.now():
+                return '2차결제미납'
+
+    def get_distance(self, obj):
+
+        if PaymentAfterUse.objects.filter(reservation_id=obj.id).exists():
+            return obj.payment_after.driving_distance
+        else:
+            return 0

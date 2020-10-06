@@ -37,6 +37,7 @@ class Member(AbstractBaseUser):
         max_length=255,
         unique=True,
     )
+    phone = models.CharField(max_length=11)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
 
@@ -85,6 +86,7 @@ class Profile(models.Model):
     name = models.CharField(max_length=10)
     image = models.ImageField(null=True)
     credit_point = models.PositiveIntegerField(default=100_000)
+
 
 
 class PhoneAuth(models.Model):
