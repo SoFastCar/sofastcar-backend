@@ -52,4 +52,4 @@
 
 ## 1차 스프린트 (2020.09.03 ~ 2020.09.18)
 
-![Untitled%202.png](Readme-imagess/Untitled%202.png)
+![Untitled%202.png](Readme-images/Untitled%202.png)
