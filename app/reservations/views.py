@@ -2,6 +2,7 @@ from django.shortcuts import render
 
 # Create your views here.
 from rest_framework import mixins
+from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import GenericViewSet
 
@@ -9,7 +10,7 @@ from cars.models import Car
 from carzones.models import CarZone
 from core.permissions import IsOwner
 from reservations.models import Reservation
-from reservations.serializers import ReservationSerializer, ReservationHistorySerializer
+from reservations.serializers import ReservationSerializer, ReservationHistorySerializer, UseHistoryListSerializer
 
 
 class ReservationViewSet(mixins.CreateModelMixin,
@@ -57,6 +58,15 @@ class ReservationHistoryViewSet(mixins.RetrieveModelMixin,
     serializer_class = ReservationHistorySerializer
     permission_classes = [IsOwner, ]
 
+    def get_serializer_class(self):
+        if self.action == 'history':
+            return UseHistoryListSerializer
+        return super().get_serializer_class()
+
     def filter_queryset(self, queryset):
         queryset = queryset.filter(member=self.request.user)
         return super().filter_queryset(queryset)
+
+    @action(detail=False)
+    def history(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)

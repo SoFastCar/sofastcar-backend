@@ -437,6 +437,47 @@ class CarTestCase(APITestCase):
         self.assertEqual(entry.member.id, response.data['results'][0]['member'])
         self.assertEqual(entry.reservation.id, response.data['results'][0]['reservation'])
 
+    def test_should_list_UseHistory(self):
+        expected_status ='반납완료'
+        user2 = Member.objects.create(email='test2@example.com',
+                                      password='test2')
+        self.client.force_authenticate(user=user2)
+        reservations = baker.make('reservations.Reservation',
+                                  member=user2,
+                                  car_id=self.cars[0].id,
+                                  zone_id=self.zones[0].id,
+                                  _quantity=2)
+        payment_1 = baker.make('payments.PaymentAfterUse',
+                               member=user2,
+                               reservation_id=reservations[0].id,
+                               driving_distance=100,
+                               first_section_fee=10,
+                               second_section_fee=100,
+                               third_section_fee=1000,
+                               total_fee=1110)
+        payment_2 = baker.make('payments.PaymentAfterUse',
+                               member=user2,
+                               reservation_id=reservations[1].id,
+                               driving_distance=200,
+                               first_section_fee=20,
+                               second_section_fee=200,
+                               third_section_fee=2000,
+                               total_fee=2220)
+        payments = [payment_1, payment_2]
+
+        response = self.client.get(f'/reservations/history')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        for entry, response_entry in zip(payments, response.data['results']):
+            self.assertEqual(entry.reservation.id, response_entry['id'])
+            self.assertEqual(expected_status, response_entry['reservation_status'])
+            self.assertEqual(entry.member.id, response_entry['member'])
+            self.assertEqual(self.zones[0].id, response_entry['zone'])
+            self.assertEqual(self.cars[0].id, response_entry['car'])
+            self.assertEqual(entry.driving_distance, response_entry['distance'])
+
+
     # def test_should_create_multi_photos(self):
     #     """
     #     Request : POST - /reservations/123/photos
