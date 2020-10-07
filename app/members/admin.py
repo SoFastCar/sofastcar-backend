@@ -17,7 +17,6 @@ class MemberAdmin(ImportExportMixin, admin.ModelAdmin):
 class ProfileAdmin(ImportExportMixin, admin.ModelAdmin):
     list_display = ('id',
                     'image',
-                    'name',
                     'credit_point',)
 
 

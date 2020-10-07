@@ -67,15 +67,6 @@ class PaymentAfterUseSerializer(ModelSerializer):
         if PaymentAfterUse.objects.filter(reservation_id=res_id).exists():
             raise serializers.ValidationError('해당 건은 이미 결제완료되었습니다.')
 
-        res = Reservation.objects.get(id=res_id)
-        # 예약 시작 < 현재 < 예약 반납 < 연장 반납 시간 확인
-        if res.date_time_extension:
-            if not (res.date_time_start < timezone.now() < res.date_time_end < res.date_time_extension):
-                raise serializers.ValidationError('반납 연장은 예약된 이용시간 이후로 가능합니다.')
-        else:
-            if not (res.date_time_start < timezone.now() < res.date_time_end):
-                raise serializers.ValidationError('반납 연장은 예약된 이용시간 이후로 가능합니다.')
-
         return attrs
 
     def create(self, validated_data):

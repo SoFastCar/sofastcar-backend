@@ -257,7 +257,6 @@ class CarTestCase(APITestCase):
         """
         Request : GET - /reservations/123
         """
-
         response = self.client.get(f'/reservations/{self.reservation.id}')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -272,8 +271,15 @@ class CarTestCase(APITestCase):
         """
         Request : GET - /reservations
         """
+
         user2 = Member.objects.create(email='test2@example.com',
                                       password='test2')
+        # Credit 초기화
+        default_credit = 2000000
+        user2.profile.credit_point = default_credit
+        user2.profile.save()
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
         reservations_user = baker.make('reservations.Reservation',
                                        member=self.user,
                                        car_id=self.cars[0].id,
@@ -337,7 +343,7 @@ class CarTestCase(APITestCase):
 
         response = self.client.post(f'/reservations/{self.reservation.id}/payment_after', data=data)
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
 
         self.assertEqual(first_section_fee, response.data['first_section_fee'])
         self.assertEqual(second_section_fee, response.data['second_section_fee'])
@@ -357,7 +363,7 @@ class CarTestCase(APITestCase):
             주행거리 30 Km 이상 100 Km 이하 구간 테스트
         """
         # Credit 초기화
-        default_credit = 100000
+        default_credit = 200000
         self.user.profile.credit_point = default_credit
         self.user.profile.save()
 
@@ -485,6 +491,11 @@ class CarTestCase(APITestCase):
             self.assertEqual(self.cars[0].id, response_entry['car'])
 
     def test_should_list_MemberSelf_with_total_driving_distance(self):
+        # Credit 초기화
+        default_credit = 2000000
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
+
         reservations = baker.make('reservations.Reservation',
                                   member=self.user,
                                   car_id=self.cars[0].id,
@@ -507,7 +518,7 @@ class CarTestCase(APITestCase):
                                third_section_fee=2000,
                                total_fee=2220)
         response = self.client.get(f'/members')
-        print(response.data)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.assertEqual(self.user.name, response.data['results'][0]['name'])
@@ -536,10 +547,19 @@ class CarTestCase(APITestCase):
         Request : GET - /reservations/123/photos
         """
         expected_count = 2
-        entrys = baker.make('reservations.PhotoBeforeUse', image=self.test_image, _quantity=2)
+        entrys = baker.make('reservations.PhotoBeforeUse', reservation_id=self.reservation.id,
+                            member_id=self.user.id, image=self.test_image.name, _quantity=2)
 
-        response = self.client.post(f'/reservations/{self.reservation.id}/photos')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
+        response = self.client.get(f'/reservations/{self.reservation.id}/photos')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response)
+
+        self.assertEqual(expected_count, PhotoBeforeUse.objects.count())
+        for entry, response_entry in zip(entrys, response.data['results']):
+            self.assertTrue(response_entry['image'].endswith(entry.image.url))
+            self.assertEqual(entry.id, response_entry['id'])
+            self.assertEqual(entry.member.id, response_entry['member'])
+            self.assertEqual(entry.reservation.id, response_entry['reservation'])
 
     def test_should_retrieve_Cars_detail_info(self):
         """
@@ -580,7 +600,7 @@ class CarTestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
 
-        for entry, response_entry in zip(coupons, response.data['results']):
+        for entry, response_entry in zip(coupons, response.data['results'][1:]):
             self.assertEqual(entry.id, response_entry['id'])
             self.assertEqual(entry.member.id, response_entry['member'])
             self.assertEqual(entry.title, response_entry['title'])
