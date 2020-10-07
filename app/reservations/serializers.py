@@ -10,7 +10,8 @@ from cars.models import Car
 from core.utils import KST
 from members.models import Member, Profile
 from payments.models import PaymentAfterUse
-from reservations.models import Reservation
+from prices.models import Coupon
+from reservations.models import Reservation, PhotoBeforeUse
 
 
 class ReservationSerializer(ModelSerializer):
@@ -57,6 +58,15 @@ class ReservationSerializer(ModelSerializer):
         if not MIN_DURATION <= (date_time_end - date_time_start).total_seconds() <= MAX_DURATION:
             raise serializers.ValidationError('최소 30분부터 최대 30일까지 설정 가능합니다.')
 
+        # 쿠폰 체크
+        coupon_discount = 0
+        member = Member.objects.get(email=self.context['view'].request.user)
+        if Coupon.objects.filter(member_id=member.id, will_use_check=True, is_enabled=True).exists():
+            if 2 < Coupon.objects.filter(member_id=member.id, will_use_check=True, is_enabled=True).count():
+                raise serializers.ValidationError('쿠폰은 하나의 예약에 한개만 사용 가능합니다')
+            coupon = Coupon.objects.get(member_id=member.id, will_use_check=True, is_enabled=True)
+            coupon_discount = coupon.discount_fee
+
         # 차량 존재, 이용시간대 중복 체크
         if Car.objects.filter(id=self.context['view'].kwargs.get('car_pk')).exists():
             car = Car.objects.get(id=self.context['view'].kwargs.get('car_pk'))
@@ -75,10 +85,9 @@ class ReservationSerializer(ModelSerializer):
             insurance_price = car.insurances.get_standard_price_from_iso_format(date_time_start, date_time_end)
         elif insurance_type == 'special':
             insurance_price = car.insurances.get_special_price_from_iso_format(date_time_start, date_time_end)
-        total_rental_price = car_rental_price + insurance_price
+        total_rental_price = car_rental_price + insurance_price - coupon_discount
 
         # 크레딧 잔고 체크
-        member = Member.objects.get(email=self.context['view'].request.user)
         if Profile.objects.get(member_id=member.id).credit_point < total_rental_price:
             raise serializers.ValidationError('크레딧 잔액이 부족합니다.')
         return attrs
@@ -188,3 +197,32 @@ class UseHistoryListSerializer(ModelSerializer):
             return obj.payment_after.driving_distance
         else:
             return 0
+
+
+class PhotoBeforeUseSerializer(serializers.ModelSerializer):
+    photos = serializers.ListField(child=serializers.ImageField(), write_only=True)
+
+    class Meta:
+        model = PhotoBeforeUse
+        fields = ['id', 'member', 'reservation', 'image', 'photos']
+        read_only_fields = ['id', 'member', 'reservation', 'image']
+
+    def validate(self, attrs):
+        # 예약 존재 여부 확인
+        if not Reservation.objects.filter(id=self.context['view'].kwargs['reservation_pk']).exists():
+            raise serializers.ValidationError('Reservation does not exists')
+        return attrs
+
+    def create(self, validated_data):
+        images_data = self.context['request'].FILES
+        photo_bulk_list = []
+
+        for image in images_data.getlist('photos'):
+            photo = PhotoBeforeUse(
+                reservation=validated_data.get('reservation'),
+                image=image,
+                member=self.context['request'].user)
+            photo_bulk_list.append(photo)
+        instance = PhotoBeforeUse.objects.bulk_create(photo_bulk_list)
+
+        return instance

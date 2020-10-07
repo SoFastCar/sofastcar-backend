@@ -11,6 +11,7 @@ from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
 class MembersViewSet(mixins.CreateModelMixin,
                      mixins.DestroyModelMixin,
+                     mixins.RetrieveModelMixin,
                      mixins.ListModelMixin,
                      GenericViewSet):
     queryset = Member.objects.all()
@@ -21,7 +22,7 @@ class MembersViewSet(mixins.CreateModelMixin,
     def get_serializer_class(self):
         if self.action == 'change_password':
             return ChangePasswordSerializer
-        elif self.action == 'list':
+        elif self.action in ('list', 'retrieve'):
             return MemberInfoSerializer
         else:
             return super().get_serializer_class()
@@ -32,7 +33,7 @@ class MembersViewSet(mixins.CreateModelMixin,
         return super().filter_queryset(queryset)
 
     def get_permissions(self):
-        if self.action in ('change_password', 'list'):
+        if self.action in ('change_password', 'list', 'retrieve'):
             return [IsUserSelf()]
         return super().get_permissions()
 

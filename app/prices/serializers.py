@@ -1,9 +1,10 @@
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
 from cars.models import Car
-from core.utils import time_format
-from prices.models import CarPrice, InsuranceFee
+from core.utils import time_format, KST
+from prices.models import CarPrice, InsuranceFee, Coupon
 
 
 class CarPriceDetailSerializer(ModelSerializer):
@@ -66,3 +67,50 @@ class InsuranceFeeSerializer(ModelSerializer):
             'light': insurance.get_light_price(date_time_start, date_time_end),
         }
 
+
+class CouponSerializer(ModelSerializer):
+    date_time_start = serializers.DateTimeField(read_only=True, default_timezone=KST)
+    expire_date_time = serializers.DateTimeField(read_only=True, default_timezone=KST)
+    is_enabled = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Coupon
+        fields = ['id',
+                  'member',
+                  'date_time_start',
+                  'expire_date_time',
+                  'title',
+                  'limit_delta_term',
+                  'discount_fee',
+                  'is_enabled',
+                  'will_use_check',
+                  'is_used',
+                  'is_free',
+                  'description',
+                  'created_at',
+                  'updated_at'
+                  ]
+        read_only_fields = ['id',
+                            'member',
+                            'date_time_start',
+                            'expire_date_time',
+                            'title',
+                            'limit_delta_term',
+                            'discount_fee',
+                            'is_enabled',
+                            'will_use_check',
+                            'is_used',
+                            'is_free',
+                            'description',
+                            'created_at',
+                            'updated_at'
+                            ]
+
+    def get_is_enabled(self, obj):
+        # 현재 시간 기준 만료인지 확인
+        if obj.expire_date_time <= timezone.now() or timezone.now() <= obj.date_time_start:
+            obj.is_enabled = False
+            obj.save()
+            return False
+        else:
+            return True

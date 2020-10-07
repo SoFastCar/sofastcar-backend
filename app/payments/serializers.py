@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
@@ -60,8 +62,9 @@ class PaymentAfterUseSerializer(ModelSerializer):
                             ]
 
     def validate(self, attrs):
+        res_id = self.context['view'].kwargs.get('reservation_pk')
         # 2차 결제 여부 체크
-        if PaymentAfterUse.objects.filter(reservation_id=self.context['view'].kwargs.get('reservation_pk')).exists():
+        if PaymentAfterUse.objects.filter(reservation_id=res_id).exists():
             raise serializers.ValidationError('해당 건은 이미 결제완료되었습니다.')
 
         return attrs

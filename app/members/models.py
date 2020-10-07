@@ -13,6 +13,8 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.utils import timezone
 
+from prices.models import Coupon
+
 
 class MemberManager(BaseUserManager):
     def _create_user(self, name, email, password, **extra_fields):
@@ -74,6 +76,9 @@ class Member(AbstractBaseUser):
             self.set_password(self.password)
             super().save(*args, **kwargs)
             Profile.objects.create(member=self)
+            Coupon.objects.create(member=self, title='가입 기념 1만원 쿠폰',
+                                  expire_date_time=datetime.datetime(2020, 12, 19, 12, 0, tzinfo=datetime.timezone.utc),
+                                  discount_fee=10000, date_time_start=timezone.now())
         else:
             super().save(*args, **kwargs)
 
@@ -83,9 +88,8 @@ class Profile(models.Model):
                                   related_name='profile',
                                   on_delete=models.CASCADE,
                                   )
-    name = models.CharField(max_length=10)
     image = models.ImageField(null=True)
-    credit_point = models.PositiveIntegerField(default=100_000)
+    credit_point = models.PositiveIntegerField(default=5_000_000)
 
 
 
