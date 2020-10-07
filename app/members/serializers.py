@@ -30,7 +30,7 @@ class MembersSerializer(ModelSerializer):
 
 
 class MemberInfoSerializer(ModelSerializer):
-    credit_point = serializers.IntegerField(read_only=True)
+    credit_point = serializers.SerializerMethodField()
     total_driving_distance = serializers.SerializerMethodField()
 
     class Meta:
@@ -56,6 +56,9 @@ class MemberInfoSerializer(ModelSerializer):
             return total_distance['driving_distance__sum']
         else:
             return 0
+
+    def get_credit_point(self, obj):
+        return obj.profile.credit_point
 
 
 class ChangePasswordSerializer(ModelSerializer):

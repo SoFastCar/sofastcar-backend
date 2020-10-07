@@ -9,8 +9,9 @@ from rest_framework.viewsets import GenericViewSet
 from cars.models import Car
 from carzones.models import CarZone
 from core.permissions import IsOwner
-from reservations.models import Reservation
-from reservations.serializers import ReservationSerializer, ReservationHistorySerializer, UseHistoryListSerializer
+from reservations.models import Reservation, PhotoBeforeUse
+from reservations.serializers import ReservationSerializer, ReservationHistorySerializer, UseHistoryListSerializer, \
+    PhotoBeforeUseSerializer
 
 
 class ReservationViewSet(mixins.CreateModelMixin,
@@ -71,3 +72,29 @@ class ReservationHistoryViewSet(mixins.RetrieveModelMixin,
     @action(detail=False)
     def history(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+
+class PhotoBeforeUseViewSet(mixins.CreateModelMixin,
+                            mixins.ListModelMixin,
+                            GenericViewSet):
+    """
+        차량 탑승전 사진 업로드 및 보여주기 위한 API
+        ---
+        # 내용
+        [POST] /reservations/123/photos
+            -> 해당 예약건에 대한 탑승전 사진 업로드(이미지 다중 업로드 가능)
+        [GET] /reservations/123/photos
+            -> 해당 예약건에 대한 탑승전 사진 리스트 보기
+    """
+    queryset = PhotoBeforeUse.objects.all()
+    serializer_class = PhotoBeforeUseSerializer
+    permission_classes = [IsOwner, ]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.filter(reservation_id=self.kwargs.get('reservation_pk'))
+        return queryset
+
+    def perform_create(self, serializer):
+        reservation = get_object_or_404(Reservation, id=self.kwargs.get('reservation_pk'))
+        serializer.save(member=self.request.user, reservation=reservation)

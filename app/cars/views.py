@@ -1,11 +1,12 @@
 # Create your views here.
 from rest_framework import mixins, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from cars.models import Car
-from cars.serializers import CarSerializer
+from cars.serializers import CarSerializer, CarDetailInfoSerializer
 
 
 class CarViewSet(mixins.RetrieveModelMixin,
@@ -23,13 +24,15 @@ class CarViewSet(mixins.RetrieveModelMixin,
             쿼리 파라미터는 2020년09월26일14시00분 -> 202009261400(str값) (KST:한국시간기준)
             시간차에 의한 DB 권장사항에 따라 DB에는 UTC 기준으로 시간이 저장되고 이 값이 Response로 나갈때
             timezone을 KST로 변경하여 보여주게 됩니다
-
-            사용자가 예약 종료 시점을 언제로 잡을지 모르기 때문에,
-            해당 쏘카존에서 차량별 일단 사용자가 원하는 시작 시점부터 잡혀있는 타임테이블은 모두 반환하게 하였습니다
     """
     queryset = Car.objects.all()
     serializer_class = CarSerializer
     permission_classes = [IsAuthenticated, ]
+
+    def get_serializer_class(self):
+        if self.action == 'info':
+            return CarDetailInfoSerializer
+        return super().get_serializer_class()
 
     def filter_queryset(self, queryset):
         queryset = queryset.filter(zone=self.kwargs.get('carzone_pk'))
@@ -45,17 +48,13 @@ class CarViewSet(mixins.RetrieveModelMixin,
 
         return super().list(request, *args, **kwargs)
 
-# class PhotoBeforeUseViewSet(mixins.CreateModelMixin,
-#                             GenericViewSet):
-#     queryset = PhotoBeforeUse.objects.all()
-#     serializer_class = PhotoBeforeUseSerializer
-#     permission_classes = [IsAuthenticated, ]
-#
-#     def get_queryset(self):
-#         queryset = super().get_queryset()
-#         queryset = queryset.filter(reservation_id=self.kwargs.get('reservation_pk'))
-#         return queryset
-#
-#     def perform_create(self, serializer):
-#         reservation = get_object_or_404(Reservation, id=self.kwargs.get('reservation_pk'))
-#         serializer.save(member=self.request.user, reservation=reservation)
+    @action(detail=True)
+    def info(self, request, *args, **kwargs):
+        """
+            특정 차량의 디테일 정보와 가격 정보를 반환하는 API
+            ---
+            # 내용
+            [GET] /carzones/123/cars/456/info
+             -> 특정 쏘카존 차량의 디테일 정보 반환
+        """
+        return super().retrieve(request, *args, **kwargs)

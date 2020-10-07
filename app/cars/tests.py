@@ -13,8 +13,8 @@ from cars.models import CarTimeTable
 from core.utils import trans_kst_to_utc, KST
 from members.models import Member, Profile
 from payments.models import PaymentBeforeUse, PaymentAfterUse
-from prices.models import InsuranceFee
-from reservations.models import ReservationStatus, Reservation
+from prices.models import InsuranceFee, Coupon
+from reservations.models import ReservationStatus, Reservation, PhotoBeforeUse
 
 
 class ImageMaker:
@@ -41,7 +41,7 @@ class CarTestCase(APITestCase):
         # 테스트용 차량 가격 2개
         self.car_price_1 = baker.make('prices.CarPrice',
                                       car=self.cars[0],
-                                      standard_price=1000,
+                                      standard_price=50000,
                                       weekday_price_per_ten_min=10,
                                       min_price_per_km=10,
                                       mid_price_per_km=100,
@@ -85,6 +85,8 @@ class CarTestCase(APITestCase):
                                                       insurance=self.expected_insurance,
                                                       date_time_start=self.test_date_time_start,
                                                       date_time_end=self.test_date_time_end)
+
+        self.coupon_expire_date_time = datetime.datetime(2020, 12, 19, 12, 0, tzinfo=datetime.timezone.utc)
         self.client.force_authenticate(user=self.user)
 
     def test_should_list_Cars_and_CarPrices(self):
@@ -255,7 +257,6 @@ class CarTestCase(APITestCase):
         """
         Request : GET - /reservations/123
         """
-
         response = self.client.get(f'/reservations/{self.reservation.id}')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -270,8 +271,15 @@ class CarTestCase(APITestCase):
         """
         Request : GET - /reservations
         """
+
         user2 = Member.objects.create(email='test2@example.com',
                                       password='test2')
+        # Credit 초기화
+        default_credit = 2000000
+        user2.profile.credit_point = default_credit
+        user2.profile.save()
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
         reservations_user = baker.make('reservations.Reservation',
                                        member=self.user,
                                        car_id=self.cars[0].id,
@@ -335,7 +343,7 @@ class CarTestCase(APITestCase):
 
         response = self.client.post(f'/reservations/{self.reservation.id}/payment_after', data=data)
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
 
         self.assertEqual(first_section_fee, response.data['first_section_fee'])
         self.assertEqual(second_section_fee, response.data['second_section_fee'])
@@ -355,7 +363,7 @@ class CarTestCase(APITestCase):
             주행거리 30 Km 이상 100 Km 이하 구간 테스트
         """
         # Credit 초기화
-        default_credit = 100000
+        default_credit = 200000
         self.user.profile.credit_point = default_credit
         self.user.profile.save()
 
@@ -483,6 +491,11 @@ class CarTestCase(APITestCase):
             self.assertEqual(self.cars[0].id, response_entry['car'])
 
     def test_should_list_MemberSelf_with_total_driving_distance(self):
+        # Credit 초기화
+        default_credit = 2000000
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
+
         reservations = baker.make('reservations.Reservation',
                                   member=self.user,
                                   car_id=self.cars[0].id,
@@ -513,16 +526,163 @@ class CarTestCase(APITestCase):
         self.assertEqual(self.user.phone, response.data['results'][0]['phone'])
         self.assertEqual(payment_1.driving_distance + payment_2.driving_distance,
                          response.data['results'][0]['total_driving_distance'])
-    # def test_should_create_multi_photos(self):
-    #     """
-    #     Request : POST - /reservations/123/photos
-    #     """
-    #     expected_count = 2
-    #     test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
-    #     test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
-    #
-    #     data = {'photos': [test_image_1, test_image_2]}
-    #
-    #     response = self.client.post(f'/reservations/{self.reservations[0].id}/photos', data=data, format='multipart')
-    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
-    #     self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
+
+    def test_should_create_multi_photos(self):
+        """
+        Request : POST - /reservations/123/photos
+        """
+        expected_count = 2
+        test_image_1 = ImageMaker.temporary_image(name='test1.jpg')
+        test_image_2 = ImageMaker.temporary_image(name='test2.jpg')
+
+        data = {'photos': [test_image_1, test_image_2]}
+
+        response = self.client.post(f'/reservations/{self.reservation.id}/photos', data=data, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response)
+        self.assertEqual(PhotoBeforeUse.objects.all().count(), expected_count)
+
+    def test_should_list_photos(self):
+        """
+        Request : GET - /reservations/123/photos
+        """
+        expected_count = 2
+        entrys = baker.make('reservations.PhotoBeforeUse', reservation_id=self.reservation.id,
+                            member_id=self.user.id, image=self.test_image.name, _quantity=2)
+
+        response = self.client.get(f'/reservations/{self.reservation.id}/photos')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response)
+
+        self.assertEqual(expected_count, PhotoBeforeUse.objects.count())
+        for entry, response_entry in zip(entrys, response.data['results']):
+            self.assertTrue(response_entry['image'].endswith(entry.image.url))
+            self.assertEqual(entry.id, response_entry['id'])
+            self.assertEqual(entry.member.id, response_entry['member'])
+            self.assertEqual(entry.reservation.id, response_entry['reservation'])
+
+    def test_should_retrieve_Cars_detail_info(self):
+        """
+        Request : GET - /carzones/123/cars/456/info
+        """
+        response = self.client.get(f'/carzones/{self.zones[0].id}/cars/{self.cars[0].id}/info')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+        self.assertEqual(self.cars[0].id, response.data['id'])
+        self.assertEqual(self.cars[0].name, response.data['name'])
+        self.assertEqual(self.cars[0].zone.id, response.data['zone'])
+        self.assertTrue(response.data['image'].endswith(self.cars[0].image.url))
+        self.assertEqual(self.cars[0].manufacturer, response.data['manufacturer'])
+        self.assertEqual(self.cars[0].fuel_type, response.data['fuel_type'])
+        self.assertEqual(self.cars[0].type_of_vehicle, response.data['type_of_vehicle'])
+        self.assertEqual(self.cars[0].shift_type, response.data['shift_type'])
+        self.assertEqual(self.cars[0].riding_capacity, response.data['riding_capacity'])
+        self.assertEqual(self.cars[0].is_event_model, response.data['is_event_model'])
+        self.assertEqual(self.cars[0].manual_page, response.data['manual_page'])
+        self.assertEqual(self.cars[0].safety_option, response.data['safety_option'])
+        self.assertEqual(self.cars[0].convenience_option, response.data['convenience_option'])
+        self.assertEqual(self.car_price_1.id, response.data['car_prices']['id'])
+        self.assertEqual(self.car_price_1.car_id, response.data['car_prices']['car'])
+        self.assertEqual(self.car_price_1.standard_price, response.data['car_prices']['standard_price'])
+        self.assertEqual(self.car_price_1.min_price_per_km, response.data['car_prices']['min_price_per_km'])
+        self.assertEqual(self.car_price_1.mid_price_per_km, response.data['car_prices']['mid_price_per_km'])
+        self.assertEqual(self.car_price_1.max_price_per_km, response.data['car_prices']['max_price_per_km'])
+
+    def test_should_list_coupon(self):
+        """
+            Request : GET - /members/123/coupons
+        """
+        coupons = baker.make('prices.Coupon', member_id=self.user.id, title='1일 10000원 쿠폰', discount_fee=10000,
+                             expire_date_time=self.coupon_expire_date_time, _quantity=2)
+
+        response = self.client.get(f'/members/{self.user.id}/coupons')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+        for entry, response_entry in zip(coupons, response.data['results'][1:]):
+            self.assertEqual(entry.id, response_entry['id'])
+            self.assertEqual(entry.member.id, response_entry['member'])
+            self.assertEqual(entry.title, response_entry['title'])
+            self.assertEqual(entry.limit_delta_term, response_entry['limit_delta_term'])
+            self.assertEqual(entry.discount_fee, response_entry['discount_fee'])
+            self.assertEqual(entry.is_enabled, response_entry['is_enabled'])
+            self.assertEqual(entry.is_used, response_entry['is_used'])
+            self.assertEqual(entry.will_use_check, response_entry['will_use_check'])
+            self.assertEqual(entry.is_free, response_entry['is_free'])
+
+    def test_should_retrive_coupon(self):
+        """
+            Request : GET - /members/123/coupons/456
+        """
+        coupons = baker.make('prices.Coupon', member_id=self.user.id, title='1일 10000원 쿠폰', discount_fee=10000,
+                             expire_date_time=self.coupon_expire_date_time, _quantity=2)
+        response = self.client.get(f'/members/{self.user.id}/coupons/{coupons[0].id}')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+        self.assertEqual(coupons[0].id, response.data['id'])
+        self.assertEqual(coupons[0].member.id, response.data['member'])
+        self.assertEqual(coupons[0].title, response.data['title'])
+        self.assertEqual(coupons[0].limit_delta_term, response.data['limit_delta_term'])
+        self.assertEqual(coupons[0].discount_fee, response.data['discount_fee'])
+        self.assertEqual(coupons[0].is_enabled, response.data['is_enabled'])
+        self.assertEqual(coupons[0].is_used, response.data['is_used'])
+        self.assertEqual(coupons[0].will_use_check, response.data['will_use_check'])
+        self.assertEqual(coupons[0].is_free, response.data['is_free'])
+
+    def test_should_use_coupon(self):
+        """
+            Request : POST - /members/123/coupons/456/use
+        """
+        coupon = baker.make('prices.Coupon', member_id=self.user.id, title='1일 10000원 쿠폰', discount_fee=10000,
+                            expire_date_time=self.coupon_expire_date_time)
+        expected_value = True
+        response = self.client.get(f'/members/{self.user.id}/coupons/{coupon.id}/use')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(expected_value, response.data['will_use_check'])
+
+    def test_should_discount_coupon_when_use_coupon(self):
+        """
+                Request : POST - /carzones/123/cars/456/reservations
+        """
+
+        coupon = baker.make('prices.Coupon', member_id=self.user.id, title='1일 10000원 쿠폰', discount_fee=10000,
+                            expire_date_time=self.coupon_expire_date_time, will_use_check=True)
+        expected_status = ReservationStatus.ChoiceStatus.PAID_1.value
+        # Credit 초기화
+        default_credit = 100000
+        self.user.profile.credit_point = default_credit
+        self.user.profile.save()
+
+        # 미래 시간으로 data 테스트
+        data = {'date_time_start': '2020-10-19T13:10:00Z',
+                'date_time_end': '2020-10-19T13:50:00Z',
+                'insurance': 'light'}
+
+        response = self.client.post(f'/carzones/{self.zones[0].id}/cars/{self.cars[0].id}/reservations', data=data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(str(self.zones[0].id), response.data['zone'])
+        self.assertEqual(str(self.cars[0].id), response.data['car'])
+        self.assertEqual(data['insurance'], response.data['insurance'])
+        self.assertEqual(data['date_time_start'], response.data['date_time_start'])
+        self.assertEqual(data['date_time_end'], response.data['date_time_end'])
+        # Status Check
+        self.assertTrue(ReservationStatus.objects.filter(reservation_id=response.data['id']).exists())
+        self.assertEqual(expected_status,
+                         ReservationStatus.objects.get(reservation_id=response.data['id']).status)
+        # Payment Check
+        self.assertTrue(PaymentBeforeUse.objects.filter(reservation_id=response.data['id']).exists())
+        rental_fee = self.car_price_1.standard_price + self.car_price_1.weekday_price_per_ten_min
+        insurance_fee = self.insurance_1.light_price + self.insurance_1.light_price_per_ten_min
+        self.assertEqual(rental_fee, PaymentBeforeUse.objects.get(reservation_id=response.data['id']).rental_fee)
+        self.assertEqual(insurance_fee, PaymentBeforeUse.objects.get(reservation_id=response.data['id']).insurance_fee)
+        self.assertEqual(rental_fee + insurance_fee - coupon.discount_fee,
+                         PaymentBeforeUse.objects.get(reservation_id=response.data['id']).total_fee)
+
+        # Credit Check
+        self.assertEqual(default_credit - rental_fee - insurance_fee + coupon.discount_fee,
+                         Profile.objects.get(member_id=self.user.id).credit_point)
