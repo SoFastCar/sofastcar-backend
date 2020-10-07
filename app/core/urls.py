@@ -9,7 +9,8 @@ from carzones.views import CarZoneViewSet
 from events.views import EventPhotoViewSet
 from members.views import MembersViewSet, ProfileViewSet, PhoneAuthViewSet
 from payments.views import PaymentBeforeUseViewSet, PaymentAfterUseViewSet
-from reservations.views import ReservationViewSet, ReservationHistoryViewSet
+from prices.views import CouponViewSet
+from reservations.views import ReservationViewSet, ReservationHistoryViewSet, PhotoBeforeUseViewSet
 
 router = SimpleRouter(trailing_slash=False)
 router.register('members', MembersViewSet)
@@ -19,6 +20,11 @@ router.register('phone_auth', PhoneAuthViewSet)
 router.register('event_photos', EventPhotoViewSet)
 router.register('reservations', ReservationHistoryViewSet)
 
+"""
+members/123/coupons
+"""
+member_coupon_router = routers.NestedSimpleRouter(router, 'members', lookup='member')
+member_coupon_router.register('coupons', CouponViewSet)
 """
 carzones/123/cars
 """
@@ -34,10 +40,12 @@ carzone_car_router.register('reservations', ReservationViewSet)
 """
 reservations/123/payment_before
 reservations/123/payment_after
+reservations/123/photos
 """
 reservation_payment_before_router = routers.NestedSimpleRouter(router, 'reservations', lookup='reservation')
 reservation_payment_before_router.register('payment_before', PaymentBeforeUseViewSet)
 reservation_payment_before_router.register('payment_after', PaymentAfterUseViewSet)
+reservation_payment_before_router.register('photos', PhotoBeforeUseViewSet)
 
 urlpatterns = router.urls
 
@@ -45,6 +53,7 @@ urlpatterns += [
     url(r'^', include(carzone_router.urls)),
     url(r'^', include(carzone_car_router.urls)),
     url(r'^', include(reservation_payment_before_router.urls)),
+    url(r'^', include(member_coupon_router.urls)),
     url(r'^api-jwt-auth/$', obtain_jwt_token),  # JWT 토큰 생성
     url(r'^api-jwt-auth/refresh/$', refresh_jwt_token),  # JWT 토큰 갱신
     url(r'^api-jwt-auth/verify/$', verify_jwt_token),  # JWT 토큰 확인
