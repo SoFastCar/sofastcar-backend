@@ -6,6 +6,7 @@ from django.utils.translation import gettext as _
 from cars.models import CarTimeTable
 from members.models import Profile
 from payments.models import PaymentBeforeUse
+from prices.models import Coupon
 
 
 class Reservation(models.Model):
@@ -53,12 +54,24 @@ class Reservation(models.Model):
             elif self.insurance == 'special':
                 extra_insurance_price = self.car.insurances.get_special_price_from_iso_format(self.date_time_end,
                                                                                               self.date_time_extension)
+        # 쿠폰 체크
+        coupon_discount = 0
+        coupon_id = 0
+        if Coupon.objects.filter(member_id=self.member.id, will_use_check=True, is_enabled=True).exists():
+            coupon = Coupon.objects.get(member_id=self.member.id, will_use_check=True, is_enabled=True)
+            coupon_discount = coupon.discount_fee
+            coupon_id = coupon.id
+
         if is_extension:
             # 연장 요금
             total_fee = extra_car_rental_price + extra_insurance_price
         else:
             # 기본 대여 요금
-            total_fee = car_rental_price + insurance_price
+            if coupon_discount > car_rental_price + insurance_price:
+                # 쿠폰이 대여 가격보다 높아서 음수가 나올 경우
+                total_fee = car_rental_price + insurance_price
+            else:
+                total_fee = car_rental_price + insurance_price - coupon_discount
 
         with transaction.atomic():
             # blance
@@ -89,17 +102,25 @@ class Reservation(models.Model):
                 # paid_1 Status save
                 ReservationStatus.objects.create(reservation_id=self.id,
                                                  status=ReservationStatus.ChoiceStatus.PAID_1)
+
                 # Payment report save
                 PaymentBeforeUse.objects.create(reservation_id=self.id,
                                                 member=self.member,
                                                 rental_fee=car_rental_price,
                                                 insurance_fee=insurance_price,
+                                                coupon_discount=coupon_discount,
                                                 total_fee=total_fee)
                 # CarTimeTable save
                 CarTimeTable.objects.create(zone_id=self.zone_id,
                                             car_id=self.car_id,
                                             date_time_start=self.date_time_start,
                                             date_time_end=self.date_time_end)
+
+                # Coupon save
+                if coupon_id:
+                    coupon.is_enabled = False
+                    coupon.is_used = True
+                    coupon.save()
 
 
 class ReservationStatus(models.Model):
@@ -117,3 +138,10 @@ class ReservationStatus(models.Model):
                               help_text='대여진행상태')
     created_at = models.DateTimeField(auto_now_add=True, help_text='TimeStamp')
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class PhotoBeforeUse(models.Model):
+    reservation = models.ForeignKey('reservations.Reservation', related_name='ready_photos', on_delete=models.CASCADE)
+    member = models.ForeignKey('members.Member', related_name='image_owners', on_delete=models.CASCADE)
+    image = models.ImageField(null=True, upload_to=f'ImagesBeforeUse/%Y/%m/%d/{reservation}/')
+    time_stamp = models.DateTimeField(auto_now_add=True)

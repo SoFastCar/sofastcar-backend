@@ -96,3 +96,18 @@ class InsuranceFee(models.Model):
         count_ten_minutes = (total_minutes - 30) / 10
         rental_price = int(self.special_price + count_ten_minutes * self.special_price_per_ten_min)
         return rental_price
+
+class Coupon(models.Model):
+    member = models.ForeignKey('members.Member', related_name='coupons', on_delete=models.CASCADE)
+    date_time_start = models.DateTimeField(auto_created=True, help_text='쿠폰사용시작시간')
+    expire_date_time = models.DateTimeField(help_text='만료시간')
+    title = models.CharField(max_length=100, help_text='쿠폰명')
+    limit_delta_term = models.PositiveIntegerField(default=0, help_text='N일이상 예약 제한 체크용')
+    discount_fee = models.PositiveIntegerField(default=0, help_text='할인금액')
+    is_enabled = models.BooleanField(default=True, help_text='사용가능여부')
+    will_use_check = models.BooleanField(default=False, help_text='사용시체크')
+    is_used = models.BooleanField(default=False, help_text='사용했는지여부')
+    is_free = models.BooleanField(default=False, help_text='무료쿠폰여부')
+    description = models.CharField(max_length=160, null=True, help_text='부가설명')
+    created_at = models.DateTimeField(auto_now_add=True, help_text='TimeStamp')
+    updated_at = models.DateTimeField(auto_now=True)
